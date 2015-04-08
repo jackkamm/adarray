@@ -24,12 +24,13 @@ __all__ = ['adnumber', 'gh', 'jacobian']
 
 ## EDIT (jackkamm): no longer a class method
 def _get_variables(ad_funcs):
-    # List of involved variables (ADV objects):
-    if sum([len(f._lc) for f in ad_funcs]) == 0:
+    # List of involved varibles (ADV objects):
+    lclist = [f._lc for f in ad_funcs if f._lc is not None]
+    if len(lclist) == 0:
         return False
     variables = set()
-    for expr in ad_funcs:
-        variables |= set(expr._lc)
+    for lc in lclist:
+        variables |= set(lc)
     return variables
 
 ## EDIT (jackkamm): allow certain np.ndarrays to be constants
@@ -130,44 +131,38 @@ def _floor(x):
     Return the floor of x as a float, the largest integer value less than or 
     equal to x. This is required for the "mod" function.
     """
-    if isinstance(x,ADF):
-        ad_funcs = [check_auto_diff(x)]
+    f = numpy.floor(x.x)
+    if x._lc is None:
+        return ADF(f,None,None,None)
+    ad_funcs = [x]
 
-        x = ad_funcs[0].x
-        
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = _floor(x)
-        
-        ########################################
+    x = ad_funcs[0].x
 
-        variables = _get_variables(ad_funcs)
-        
-        if not variables or isinstance(f, bool):
-            #return f
-            return ADF(f,{},{},{})
+    variables = _get_variables(ad_funcs)
 
-        ########################################
+    if not variables or isinstance(f, bool):
+        #return f
+        return ADF(f,None,None,None)
 
-        # Calculation of the derivatives with respect to the arguments
-        # of f (ad_funcs):
+    ########################################
 
-        lc_wrt_args = [0.0]
-        qc_wrt_args = [0.0]
-        cp_wrt_args = 0.0
+    # Calculation of the derivatives with respect to the arguments
+    # of f (ad_funcs):
 
-        ########################################
-        # Calculation of the derivative of f with respect to all the
-        # variables (Variable) involved.
+    lc_wrt_args = [0.0]
+    qc_wrt_args = [0.0]
+    cp_wrt_args = 0.0
 
-        lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
-                                    ad_funcs,variables,lc_wrt_args,qc_wrt_args,
-                                    cp_wrt_args)
-                                    
-        # The function now returns an ADF object:
-        return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
-    else:
-        return math.floor(x)
+    ########################################
+    # Calculation of the derivative of f with respect to all the
+    # variables (Variable) involved.
+
+    lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
+                                ad_funcs,variables,lc_wrt_args,qc_wrt_args,
+                                cp_wrt_args)
+
+    # The function now returns an ADF object:
+    return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
 
 class ADF(object):
     """
@@ -364,7 +359,7 @@ class ADF(object):
             if isinstance(x, ADF):
                 try:
                     tmp = self._lc[x]
-                except KeyError:
+                except (KeyError,TypeError):
                     #tmp = 0.0
                     tmp = self.zero() ## EDIT (jackkamm)
                 return tmp
@@ -417,7 +412,7 @@ class ADF(object):
             if isinstance(x, ADF):
                 try:
                     tmp = self._qc[x]
-                except KeyError:
+                except (KeyError,TypeError):
                     #tmp = 0.0
                     tmp = self.zero() ## EDIT (jackkamm)
                 return tmp
@@ -484,10 +479,10 @@ class ADF(object):
                 if isinstance(x, ADF) and isinstance(y, ADF):
                     try:
                         tmp = self._cp[(x, y)]
-                    except KeyError:
+                    except (KeyError,TypeError):
                         try:
                             tmp = self._cp[(y, x)]
-                        except KeyError:
+                        except (KeyError,TypeError):
                             #tmp = 0.0
                             tmp = self.zero() ## EDIT
                 else:
@@ -607,21 +602,21 @@ class ADF(object):
         return self**0.5
            
     def __add__(self, val):
-        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, (self, val)))
+        f = self.x + val.x
+        if self._lc is None and val._lc is None:
+            return ADF(f, None, None, None)
+
+        ad_funcs = [self, val]
 
         x = ad_funcs[0].x
         y = ad_funcs[1].x
         
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = x + y
-        
-        ########################################
+
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             #return f
-            return ADF(f,{},{},{})
+            return ADF(f,None,None,None)
 
         ########################################
 
@@ -649,21 +644,18 @@ class ADF(object):
         return self + val
 
     def __mul__(self, val):
-        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, (self, val)))
+        f = self.x * val.x
+        if self._lc is None and val._lc is None:
+            return ADF(f, None, None, None)
 
+        ad_funcs = [self, val]
         x = ad_funcs[0].x
         y = ad_funcs[1].x
-        
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = x*y
-        
-        ########################################
 
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return ADF(f,{},{},{})
+            return ADF(f,None,None,None)
             #return f
 
         ########################################
@@ -696,22 +688,20 @@ class ADF(object):
         return self.__truediv__(val)
     
     def __truediv__(self, val):
-        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, (self, val)))
+        f = self.x / val.x
+        if self._lc is None and val._lc is None:
+            return ADF(f, None, None, None)
+
+        ad_funcs = [self, val]  # list(map(check_auto_diff, (self, val)))
 
         x = ad_funcs[0].x
         y = ad_funcs[1].x
         
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = x/y
-        
-        ########################################
-
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             #return f
-            return ADF(f,{},{},{})
+            return ADF(f,None,None,None)
 
         ########################################
 
@@ -738,14 +728,14 @@ class ADF(object):
         This method shouldn't need any modification if __pow__ and __mul__ have
         been defined
         """
-        return val*self**(-1)
+        return val*self**(NEG_ONE)
     
     def __rtruediv__(self, val):
         """
         This method shouldn't need any modification if __pow__ and __mul__ have
         been defined
         """
-        return val*self**(-1)
+        return val*self**(NEG_ONE)
     
     def __sub__(self, val):
         """
@@ -762,22 +752,20 @@ class ADF(object):
         return NEG_ONE*self + val
 
     def __pow__(self, val):
-        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, (self, val)))
+        f = self.x ** val.x
+        if self._lc is None and val._lc is None:
+            return ADF(f, None, None, None)
+
+        ad_funcs = [self, val]  # list(map(check_auto_diff, (self, val)))
         
         x = ad_funcs[0].x
         y = ad_funcs[1].x
         
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = x**y
-        
-        ########################################
-
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             #return f
-            return ADF(f,{},{},{})
+            return ADF(f, None, None, None)
 
         ########################################
 
@@ -818,7 +806,7 @@ class ADF(object):
         return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
 
     def __rpow__(self,val):
-        return check_auto_diff(val)**self
+        return val**self
         
     def __mod__(self, val):
         return self - val*_floor(self/val)
@@ -836,21 +824,19 @@ class ADF(object):
         return -(self+ONE)
 
     def __abs__(self):
+        f = abs(self.x)
+        if self._lc is None:
+            return ADF(f, None, None, None)
+
         ad_funcs = [self]  # list(map(check_auto_diff, [self]))
 
         x = ad_funcs[0].x
         
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = abs(x)
-        
-        ########################################
-
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             #return f
-            return ADF(f,{},{},{})
+            return ADF(f,None,None,None)
 
         ########################################
 
@@ -910,15 +896,15 @@ class ADF(object):
         
     # let the respective numeric types take care of the comparison operators
     def __eq__(self, val):
-        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, [self, val]))
-        return ad_funcs[0].x==ad_funcs[1].x
+        #ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, [self, val]))
+        return self.x==val.x
     
     def __ne__(self, val):
         return not self==val
 
     def __lt__(self, val):
-        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, [self, val]))
-        return ad_funcs[0].x<ad_funcs[1].x
+        #ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, [self, val]))
+        return self.x<val.x
     
     def __le__(self, val):
         return (self<val) or (self==val)

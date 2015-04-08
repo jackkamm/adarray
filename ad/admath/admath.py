@@ -107,50 +107,38 @@ def exp(x):
     """
     Return the exponential value of x
     """
-    if isinstance(x,ADF):
-        ad_funcs = list(map(check_auto_diff,[x]))
+    f = np.exp(x.x)
+    if x._lc is None:
+        return ADF(f, None, None, None)
 
-        x = ad_funcs[0].x
-        
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = exp(x)
-        
-        ########################################
+    ad_funcs = list(map(check_auto_diff,[x]))
 
-        variables = _get_variables(ad_funcs)
-        
-        if not variables or isinstance(f, bool):
-            return ADF(f,{},{},{})
+    x = ad_funcs[0].x
 
-        ########################################
+    variables = _get_variables(ad_funcs)
 
-        # Calculation of the derivatives with respect to the arguments
-        # of f (ad_funcs):
+    if not variables or isinstance(f, bool):
+        return ADF(f,None,None,None)
 
-        lc_wrt_args = [exp(x)]
-        qc_wrt_args = [exp(x)]
-        cp_wrt_args = 0.0
+    ########################################
 
-        ########################################
-        # Calculation of the derivative of f with respect to all the
-        # variables (Variable) involved.
+    # Calculation of the derivatives with respect to the arguments
+    # of f (ad_funcs):
 
-        lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
-                                    ad_funcs,variables,lc_wrt_args,qc_wrt_args,
-                                    cp_wrt_args)
-                                    
-        # The function now returns an ADF object:
-        return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
-    else:
-#        try: # pythonic: fails gracefully when x is not an array-like object
-#            return [exp(xi) for xi in x]
-#        except TypeError:
-#         if x.imag:
-#             return cmath.exp(x)
-#         else:
-#             return math.exp(x.real)
-        return np.exp(x) ## EDIT (jackkamm): returns np.exp instead of math.exp
+    lc_wrt_args = [np.exp(x)]
+    qc_wrt_args = [np.exp(x)]
+    cp_wrt_args = 0.0
+
+    ########################################
+    # Calculation of the derivative of f with respect to all the
+    # variables (Variable) involved.
+
+    lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
+                                ad_funcs,variables,lc_wrt_args,qc_wrt_args,
+                                cp_wrt_args)
+
+    # The function now returns an ADF object:
+    return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
 
 
 def expm1(x):
@@ -165,47 +153,38 @@ def expm1(x):
         1.0000050000166668e-05
 
     """
-    if isinstance(x,ADF):
-        ad_funcs = list(map(check_auto_diff,[x]))
+    f = np.expm1(x.x)
+    if x._lc is None:
+        return ADF(f, None, None, None)
 
-        x = ad_funcs[0].x
-        
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = expm1(x)
-        
-        ########################################
+    ad_funcs = list(map(check_auto_diff,[x]))
 
-        variables = _get_variables(ad_funcs)
-        
-        if not variables or isinstance(f, bool):
-            return ADF(f,{},{},{})
+    x = ad_funcs[0].x
 
-        ########################################
+    variables = _get_variables(ad_funcs)
 
-        # Calculation of the derivatives with respect to the arguments
-        # of f (ad_funcs):
+    if not variables or isinstance(f, bool):
+        return ADF(f,None,None,None)
 
-        lc_wrt_args = [exp(x)]
-        qc_wrt_args = [exp(x)]
-        cp_wrt_args = 0.0
+    ########################################
 
-        ########################################
-        # Calculation of the derivative of f with respect to all the
-        # variables (Variable) involved.
+    # Calculation of the derivatives with respect to the arguments
+    # of f (ad_funcs):
 
-        lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
-                                    ad_funcs,variables,lc_wrt_args,qc_wrt_args,
-                                    cp_wrt_args)
-                                    
-        # The function now returns an ADF object:
-        return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
-    else:
-#        try: # pythonic: fails gracefully when x is not an array-like object
-#            return [expm1(xi) for xi in x]
-#        except TypeError:
-#        return math.expm1(x) 
-        return np.expm1(x) ## EDIT: returns np.expm1
+    lc_wrt_args = [np.exp(x)]
+    qc_wrt_args = [np.exp(x)]
+    cp_wrt_args = 0.0
+
+    ########################################
+    # Calculation of the derivative of f with respect to all the
+    # variables (Variable) involved.
+
+    lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
+                                ad_funcs,variables,lc_wrt_args,qc_wrt_args,
+                                cp_wrt_args)
+
+    # The function now returns an ADF object:
+    return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
     
 
 ## EDIT (jackkamm): unlike in original admath, this does NOT take a base argument    
@@ -216,50 +195,35 @@ def log(x):
     With two arguments, return the logarithm of x to the given base, calculated 
     as ``log(x)/log(base)``.
     """
-   
-    if isinstance(x,ADF):
-        
-        ad_funcs = list(map(check_auto_diff,[x]))
+    f = np.log(x.x)
+    if x._lc is None:
+        return ADF(f, None, None, None)
+          
+    ad_funcs = list(map(check_auto_diff,[x]))
 
-        x = ad_funcs[0].x
-        
-        ########################################
-        # Nominal value of the constructed ADF:
-        f = log(x)
-        
-        ########################################
+    x = ad_funcs[0].x
 
-        variables = _get_variables(ad_funcs)
-        
-        if not variables or isinstance(f, bool):
-            return ADF(f,{},{},{})
+    variables = _get_variables(ad_funcs)
 
-        ########################################
+    if not variables or isinstance(f, bool):
+        return ADF(f,None,None,None)
 
-        # Calculation of the derivatives with respect to the arguments
-        # of f (ad_funcs):
+    ########################################
 
-        lc_wrt_args = [1./x]
-        qc_wrt_args = [-1./x**2]
-        cp_wrt_args = 0.0
+    # Calculation of the derivatives with respect to the arguments
+    # of f (ad_funcs):
 
-        ########################################
-        # Calculation of the derivative of f with respect to all the
-        # variables (Variable) involved.
+    lc_wrt_args = [1./x]
+    qc_wrt_args = [-1./x**2]
+    cp_wrt_args = 0.0
 
-        lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
-                                    ad_funcs,variables,lc_wrt_args,qc_wrt_args,
-                                    cp_wrt_args)
-                                    
-        # The function now returns an ADF object:
-        return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
-    
-    else:
-#        try: # pythonic: fails gracefully when x is not an array-like object
-#            return [log(xi) for xi in x]
-#        except TypeError:
-#         if x.imag:
-#             return cmath.log(x, base)
-#         else:
-#             return math.log(x.real, base)
-        return np.log(x) ## EDIT (jackkamm): returns np.log instead of math.log
+    ########################################
+    # Calculation of the derivative of f with respect to all the
+    # variables (Variable) involved.
+
+    lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
+                                ad_funcs,variables,lc_wrt_args,qc_wrt_args,
+                                cp_wrt_args)
+
+    # The function now returns an ADF object:
+    return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)

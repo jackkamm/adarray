@@ -8,13 +8,16 @@ import scipy, scipy.signal
 
 def array(x):
     if isinstance(x, ADF):
-        return x.apply(np.array)
+        return x
+
+    if isinstance(x, Number):
+        return ADF(x,None,None,None)
 
     if not isinstance(x, np.ndarray):
         x = np.asarray(x)
 
     if np.issubdtype(x.dtype, np.number):
-        return ADF(x,{},{},{})
+        return ADF(x,None,None,None)
 
     # get the variables to differentiate against
     adentries = []
@@ -67,6 +70,9 @@ ADF.__len__ = ad_len
 ''' apply f to x and all its derivatives '''
 def ad_apply(self, f, *args, **kwargs):
     ret_x = f(self.x, *args, **kwargs)
+    if self._lc is None:
+        return ADF(ret_x, None, None, None)
+
     lc, qc, cp = {},{},{}
     for ret_d, x_d in zip((lc, qc, cp), (self._lc, self._qc, self._cp)):
         for v in x_d:
