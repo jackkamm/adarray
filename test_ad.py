@@ -6,12 +6,18 @@ ad test suite
 Author: Abraham Lee
 Copyright: 2013
 
+EDIT (jackkamm):
+To run, do
+
+PYTHONPATH=.. python -m adarray.test_ad
+
+from package directory
 """
-import ad
-from ad import *
-from ad.admath import *
+from . import *
+from admath import *
 import math
 import cmath
+
 
 ################################################################################
 for xi, yi in zip((2, 2.0), (3, 3.0)):

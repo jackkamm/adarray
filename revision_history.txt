@@ -1,3 +1,12 @@
+adarray-0.1
+==========
+
+- Forked from the ad package. Implemented some basic functionality,
+  as illustrated in test_adarray.py.
+
+==================
+REVISIONS BEFORE FORK BELOW:
+
 ad-1.1.1
 ========
 

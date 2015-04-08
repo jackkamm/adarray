@@ -10,20 +10,30 @@ import copy
 from random import randint
 from numbers import Number
 
-try:
-    import numpy
-    numpy_installed = True
-except ImportError:
-    numpy_installed = False
+import numpy
+numpy_installed = True
 
-__version_info__ = (1, 2, 2)
+
+__version_info__ = ("adarray",0,1)
 __version__ = '.'.join(list(map(str, __version_info__)))
 
-__author__ = 'Abraham Lee'
+__author__ = 'Abraham Lee' # with some minor edits by Jack Kamm
 
 __all__ = ['adnumber', 'gh', 'jacobian']
 
 CONSTANT_TYPES = Number
+
+## EDIT (jackkamm): no longer a class method
+def _get_variables(ad_funcs):
+    # List of involved variables (ADV objects):
+    variables = set()
+    for expr in ad_funcs:
+        variables |= set(expr._lc)
+    return variables
+
+## EDIT (jackkamm): allow certain np.ndarrays to be constants
+def _is_constant(x):
+    return isinstance(x, Number) or (isinstance(x, np.ndarray) and np.issubdtype(x.dtype, np.number))
 
 def to_auto_diff(x):
     """
@@ -39,8 +49,9 @@ def to_auto_diff(x):
     if isinstance(x, ADF):
         return x
 
-    #! In Python 2.6+, numbers.Number could be used instead, here:
-    if isinstance(x, CONSTANT_TYPES):
+
+    #if isinstance(x, CONSTANT_TYPES):
+    if _is_constant(x):## EDIT (jackkamm): use _is_constant to allow for ndarray types
         # constants have no derivatives to define:
         return ADF(x, {}, {}, {})
 
@@ -121,7 +132,7 @@ def _floor(x):
         
         ########################################
 
-        variables = ad_funcs[0]._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return f
@@ -294,6 +305,13 @@ class ADF(object):
     def __str__(self):
         return self._to_general_representation(str)
 
+    ## EDIT (jackkamm): return 0.0 of same shape
+    def zero(self):
+        try:
+            return numpy.zeros(shape=self.shape)
+        except AttributeError:
+            return 0.0
+
     def d(self, x=None):
         """
         Returns first derivative with respect to x (an AD object).
@@ -337,8 +355,11 @@ class ADF(object):
                 try:
                     tmp = self._lc[x]
                 except KeyError:
-                    tmp = 0.0
-                return tmp if tmp.imag else tmp.real
+                    #tmp = 0.0
+                    tmp = self.zero() ## EDIT (jackkamm)
+                return tmp
+                #return tmp if tmp.imag else tmp.real
+                ## EDIT (jackkamm): checking if tmp.imag fails because it is array, so just return tmp
             else:
                 return 0.0
         else:
@@ -387,8 +408,11 @@ class ADF(object):
                 try:
                     tmp = self._qc[x]
                 except KeyError:
-                    tmp = 0.0
-                return tmp if tmp.imag else tmp.real
+                    #tmp = 0.0
+                    tmp = self.zero() ## EDIT (jackkamm)
+                return tmp
+                #return tmp if tmp.imag else tmp.real
+                ## EDIT (jackkamm): checking if tmp.imag fails because it is array, so just return tmp
             else:
                 return 0.0
         else:
@@ -454,12 +478,14 @@ class ADF(object):
                         try:
                             tmp = self._cp[(y, x)]
                         except KeyError:
-                            tmp = 0.0
+                            #tmp = 0.0
+                            tmp = self.zero() ## EDIT
                 else:
                     tmp = 0.0
-                
-            return tmp if tmp.imag else tmp.real
 
+            return tmp
+            #return tmp if tmp.imag else tmp.real
+            ## EDIT (jackkamm): checking if tmp.imag fails because it is array, so just return tmp
         elif ((x is not None) and not (y is not None)) or \
              ((y is not None) and not (x is not None)):
             return 0.0
@@ -569,14 +595,7 @@ class ADF(object):
         ``numpy`` functions like ``numpy.sqrt``, ``numpy.std``, etc.
         """
         return self**0.5
-        
-    def _get_variables(self, ad_funcs):
-        # List of involved variables (ADV objects):
-        variables = set()
-        for expr in ad_funcs:
-            variables |= set(expr._lc)
-        return variables
-    
+           
     def __add__(self, val):
         ad_funcs = [self, to_auto_diff(val)]  # list(map(to_auto_diff, (self, val)))
 
@@ -588,7 +607,7 @@ class ADF(object):
         f = x + y
         
         ########################################
-        variables = self._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return f
@@ -630,7 +649,7 @@ class ADF(object):
         
         ########################################
 
-        variables = self._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return f
@@ -676,7 +695,7 @@ class ADF(object):
         
         ########################################
 
-        variables = self._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return f
@@ -741,7 +760,7 @@ class ADF(object):
         
         ########################################
 
-        variables = self._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return f
@@ -813,7 +832,7 @@ class ADF(object):
         
         ########################################
 
-        variables = self._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return f

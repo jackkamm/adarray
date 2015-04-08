@@ -1,3 +1,48 @@
+This package is a fork of the original ad package for autodifferentiation.
+It is a barebones reimplementation that is intended to be faster for dealing
+with large arrays of numbers.
+
+In the original ad package, ad() objects represent scalar numbers and their
+derivatives. To handle multidimensional objects, arrays of ad() objects are
+constructed and manipulated. For large arrays this can be slow, because it
+requires looping over entries in python.
+
+numpy implements many array operations, such as element-wise and matrix
+multiplication, in C and/or Fortran, thus can do array operations much faster
+when the arrays contain primitive numbers. We take advantage of this by
+modifying the ad() object so it can contain a numpy ndarray object and its derivatives.
+
+Because of operator overloading, and the fact that the chain rule still holds
+for the vectorized operations, most of the core ad() methods still work when
+the ad() is holding an array instead of a scalar. This can lead to a substantial
+improvement in performance, by taking advantage of numpy calls to C/Fortran instead
+of using loops in Python.
+
+However, there are two important downsides:
+(1) Many functions, especially in admath, no longer work with ad(array) objects, and
+    need to be reimplemented.
+(2) Doing numpy.array * ad(array), or numpy.array / ad(array), (where the numpy object
+    is on the left, and the ad object is on the right) can lead to unintuitive results.
+    Basically, the object on the left has its __mul__ or __div__ method called, and numpy
+    will resort to doing elementwise operations because it doesn't recognize the ad()
+    object; this will result in an array of ad(number) objects.
+
+    Unfortunately, there doesn't seem to be any way around this.
+    To be safe, we will have to explicitly require ad() objects to multiply/divide
+    other ad() objects, and not allow multiplation with non ad() objects such as float. (TODO)
+
+As another speedup, we will modify the ad() object so that it has the option to
+only keep track of first-order derivatives (TODO). We have found that, for some problems,
+explicitly computing all the second-order derivatives is not worth the cost, as many
+optimization algorithms can effectively estimate the necessary second-order terms.
+
+Many thanks to Abraham Lee for writing the original package, which we found to be very clean,
+transparent, and easy to edit for our purposes.
+
+--Jack Kamm (2015)
+
+ORIGINAL README BELOW:
+
 ``ad`` Package Documentation
 ============================
 
