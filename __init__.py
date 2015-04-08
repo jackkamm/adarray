@@ -26,15 +26,16 @@ def array(x):
 
     # initialize the dictionaries of derivatives
     lc_dict, qc_dict, cp_dict = {}, {}, {}
-    d_dicts = (lc_dict, qc_dict, cp_dict)
+    if variables:
+        d_dicts = (lc_dict, qc_dict, cp_dict)
 
-    # fill the dictionaries of derivatives
-    for i,xi in adentries:
-        for xi_d, x_d in zip((xi._lc, xi._qc, xi._cp), d_dicts):
-            for k in xi_d:
-                if k not in x_d:
-                    x_d[k] = np.zeros(x.shape)
-                x_d[k][i] = xi_d[k]
+        # fill the dictionaries of derivatives
+        for i,xi in adentries:
+            for xi_d, x_d in zip((xi._lc, xi._qc, xi._cp), d_dicts):
+                for k in xi_d:
+                    if k not in x_d:
+                        x_d[k] = np.zeros(x.shape)
+                    x_d[k][i] = xi_d[k]
 
     x_old = x
     x = np.zeros(x.shape)
@@ -111,6 +112,9 @@ def ad_product(prod):
         x = prod(a.x,b.x, *args, **kwargs)
 
         variables = _get_variables([a,b])
+        if not variables:
+            return ADF(x, {}, {}, {})
+
         lc, qc, cp = {}, {}, {}
         for i,v in enumerate(variables):
             lc[v] = prod(a.d(v), b.x, *args, **kwargs) + prod(a.x, b.d(v),*args,**kwargs)

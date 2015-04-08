@@ -25,6 +25,8 @@ __all__ = ['adnumber', 'gh', 'jacobian']
 ## EDIT (jackkamm): no longer a class method
 def _get_variables(ad_funcs):
     # List of involved variables (ADV objects):
+    if sum([len(f._lc) for f in ad_funcs]) == 0:
+        return False
     variables = set()
     for expr in ad_funcs:
         variables |= set(expr._lc)
@@ -142,7 +144,8 @@ def _floor(x):
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            #return f
+            return ADF(f,{},{},{})
 
         ########################################
 
@@ -617,7 +620,8 @@ class ADF(object):
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            #return f
+            return ADF(f,{},{},{})
 
         ########################################
 
@@ -659,7 +663,8 @@ class ADF(object):
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            return ADF(f,{},{},{})
+            #return f
 
         ########################################
 
@@ -705,7 +710,8 @@ class ADF(object):
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            #return f
+            return ADF(f,{},{},{})
 
         ########################################
 
@@ -770,7 +776,8 @@ class ADF(object):
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            #return f
+            return ADF(f,{},{},{})
 
         ########################################
 
@@ -842,7 +849,8 @@ class ADF(object):
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            #return f
+            return ADF(f,{},{},{})
 
         ########################################
 

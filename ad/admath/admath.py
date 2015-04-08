@@ -121,7 +121,7 @@ def exp(x):
         variables = ad_funcs[0]._get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            return ADF(f,{},{},{})
 
         ########################################
 
@@ -179,7 +179,7 @@ def expm1(x):
         variables = ad_funcs[0]._get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            return ADF(f,{},{},{})
 
         ########################################
 
@@ -234,7 +234,7 @@ def log(x):
         variables = ad_funcs[0]._get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return f
+            return ADF(f,{},{},{})
 
         ########################################
 
