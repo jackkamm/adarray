@@ -1,5 +1,6 @@
 from .ad import *
-from .ad import ADF, _get_variables, check_auto_diff
+from .ad import ADF, _get_variables, check_auto_diff, _apply_chain_rule, _is_constant
+from .ad import admath
 
 import numpy as np
 from numbers import Number
@@ -130,3 +131,8 @@ def ad_product(prod):
 dot = ad_product(np.dot)
 tensordot = ad_product(np.tensordot)
 fftconvolve = ad_product(scipy.signal.fftconvolve)
+outer = ad_product(np.outer)
+
+
+def diag(x):
+    return x.apply(np.diag)

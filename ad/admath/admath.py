@@ -56,7 +56,7 @@ author.
 from __future__ import division
 import math
 import cmath
-from ad import __author__, ADF, check_auto_diff, _apply_chain_rule
+from adarray import ADF, check_auto_diff, _apply_chain_rule, _get_variables
 
 import numpy as np
 numpy_installed = True
@@ -118,7 +118,7 @@ def exp(x):
         
         ########################################
 
-        variables = ad_funcs[0]._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return ADF(f,{},{},{})
@@ -176,7 +176,7 @@ def expm1(x):
         
         ########################################
 
-        variables = ad_funcs[0]._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return ADF(f,{},{},{})
@@ -216,9 +216,7 @@ def log(x):
     With two arguments, return the logarithm of x to the given base, calculated 
     as ``log(x)/log(base)``.
     """
-    if base is None:
-        return log(x)
-    
+   
     if isinstance(x,ADF):
         
         ad_funcs = list(map(check_auto_diff,[x]))
@@ -227,11 +225,11 @@ def log(x):
         
         ########################################
         # Nominal value of the constructed ADF:
-        f = log(x, base)
+        f = log(x)
         
         ########################################
 
-        variables = ad_funcs[0]._get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
             return ADF(f,{},{},{})

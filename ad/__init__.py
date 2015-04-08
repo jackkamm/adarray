@@ -34,7 +34,7 @@ def _get_variables(ad_funcs):
 
 ## EDIT (jackkamm): allow certain np.ndarrays to be constants
 def _is_constant(x):
-    return isinstance(x, Number) or (isinstance(x, np.ndarray) and np.issubdtype(x.dtype, np.number))
+    return isinstance(x, Number) or (isinstance(x, numpy.ndarray) and (numpy.issubdtype(x.dtype, numpy.number) or numpy.issubdtype(x.dtype, numpy.bool)))
 
 ## EDIT (jackkamm): we no longer convert numbers to ADF objects,
 ## instead forcing users to construct the ADF objects beforehand.
