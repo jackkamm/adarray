@@ -37,8 +37,8 @@ only keep track of first-order derivatives (TODO). We have found that, for some 
 explicitly computing all the second-order derivatives is not worth the cost, as many
 optimization algorithms can effectively estimate the necessary second-order terms.
 
-Many thanks to Abraham Lee for writing the original package, which we found to be very clean,
-transparent, and easy to edit for our purposes.
+Many thanks to Abraham Lee for writing the original package, which we found to be very 
+clean, transparent, and easy to edit for our purposes.
 
 --Jack Kamm (2015)
 
