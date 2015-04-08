@@ -147,8 +147,8 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     def test_func(x, a):
         return (x[0] + x[1])**array(a)
     testg, testh = gh(test_func)
-    assert testg([x, y], 3)==((x + y)**array(3)).gradient([x, y]), testg([x, y], 3)
-    assert testh([x, y], 3)==((x + y)**array(3)).hessian([x, y]), testh([x, y], 3)
+    assert testg([xi, yi], 3)==((x + y)**array(3)).gradient([x, y]), testg([x, y], 3)
+    assert testh([xi, yi], 3)==((x + y)**array(3)).hessian([x, y]), testh([x, y], 3)
 
     # test jacobian function
     assert jacobian([z_mul, z_add], [x, 1, y])==[[3.0, 0.0, 2.0], 

@@ -21,7 +21,6 @@ __author__ = 'Abraham Lee' # with some minor edits by Jack Kamm
 
 __all__ = ['adnumber', 'gh', 'jacobian']
 
-CONSTANT_TYPES = Number
 
 ## EDIT (jackkamm): no longer a class method
 def _get_variables(ad_funcs):
@@ -940,6 +939,8 @@ class ADV(ADF):
         # the second is always 0.0
         super(ADV, self).__init__(value, {self:1.0}, {self:0.0}, {}, tag=tag)
 
+## EDITED (jackkamm): must now take in a constant scalar type, or an ndarray/list of such.
+## Use array() for ADF types or list/ndarrays of ADF types
 def adnumber(x, tag=None):
     """
     Constructor of automatic differentiation (AD) variables, or numbers that
@@ -1037,31 +1038,30 @@ def adnumber(x, tag=None):
     won't work.
         
     """
-    try:
-        # If the input is a numpy array, return a numpy array, otherwise try to
-        # match the input type (numpy arrays are constructed differently using
-        # numpy.array(...) and the actual class type, numpy.ndarray(...), so we
-        # needed an exception). Other iterable types may need exceptions, but
-        # this should always work for list and tuple objects at least.
-        
-        if numpy_installed and isinstance(x, numpy.ndarray):
-            return numpy.array([adnumber(xi, tag) for xi in x])
-        elif isinstance(x, (tuple, list)):
-            return type(x)([adnumber(xi, tag) for xi in x])
-        else:
-            raise TypeError
-        
-    except TypeError:
-        if isinstance(x, ADF):
-            cp = copy.deepcopy(x)
-            return cp
-        elif isinstance(x, CONSTANT_TYPES):
-            return ADV(x, tag)
+    # If the input is a numpy array, return a numpy array, otherwise try to
+    # match the input type (numpy arrays are constructed differently using
+    # numpy.array(...) and the actual class type, numpy.ndarray(...), so we
+    # needed an exception). Other iterable types may need exceptions, but
+    # this should always work for list and tuple objects at least.
 
-    raise NotImplementedError(
-        'Automatic differentiation not yet supported for {:} objects'.format(
-        type(x))
-        )
+    if isinstance(x, numpy.ndarray):
+        return numpy.array([adnumber(xi, tag) for xi in x])
+    elif isinstance(x, (tuple, list)):
+        return type(x)([adnumber(xi, tag) for xi in x])
+    elif isinstance(x, Number):
+        return ADV(x, tag)
+    else:
+        raise TypeError("adnumber must be called on constant scalar type, or list of such")
+#     except TypeError:
+#         if isinstance(x, ADF):
+#             cp = copy.deepcopy(x)
+#             return cp
+#         elif isinstance(x, Number):
+#             return ADV(x, tag)
+#     raise NotImplementedError(
+#         'Automatic differentiation not yet supported for {:} objects'.format(
+#         type(x))
+#         )
 
 adfloat = adnumber  # for backwards compatibility
 
