@@ -23,13 +23,14 @@ However, there are two important downsides:
     need to be reimplemented.
 (2) Doing numpy.array * ad(array), or numpy.array / ad(array), (where the numpy object
     is on the left, and the ad object is on the right) can lead to unintuitive results.
-    Basically, the object on the left has its __mul__ or __div__ method called, and numpy
-    will resort to doing elementwise operations because it doesn't recognize the ad()
-    object; this will result in an array of ad(number) objects.
+    Basically, the object on the left has its __mul__ or __div__ method called, and 
+    numpy will resort to doing elementwise operations because it doesn't recognize the 
+    ad() object; this will result in an array of ad(number) objects.
 
     Unfortunately, there doesn't seem to be any way around this.
     To be safe, we will have to explicitly require ad() objects to multiply/divide
-    other ad() objects, and not allow multiplation with non ad() objects such as float. (TODO)
+    other ad() objects, and not allow multiplation with non ad() objects 
+    such as float. (TODO)
 
 As another speedup, we will modify the ad() object so that it has the option to
 only keep track of first-order derivatives (TODO). We have found that, for some problems,
