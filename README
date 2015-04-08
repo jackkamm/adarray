@@ -33,9 +33,10 @@ However, there are two important downsides:
     such as float. (TODO)
 
 As another speedup, we will modify the ad() object so that it has the option to
-only keep track of first-order derivatives (TODO). We have found that, for some problems,
-explicitly computing all the second-order derivatives is not worth the cost, as many
-optimization algorithms can effectively estimate the necessary second-order terms.
+only keep track of first-order derivatives (TODO). We have found that, for some 
+problems, explicitly computing all the second-order derivatives is not worth 
+the cost, as many optimization algorithms can effectively estimate the necessary
+second-order terms.
 
 Many thanks to Abraham Lee for writing the original package, which we found to be very 
 clean, transparent, and easy to edit for our purposes.
