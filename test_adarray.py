@@ -45,13 +45,14 @@ def check_gradient(x_ad, x_np, *vars):
 
 
 def get_random_monomials(args, shape=None, maxorder=5, minorder=1):
-    ret = np.zeros(shape=shape) + adnumber(1.0)
+    ret = np.zeros(shape=shape, dtype=object)
+    ret.fill(array(1))
 
     for x in args:
         assert isinstance(x, ADF)
         for i,_ in np.ndenumerate(ret):
-            xpow = x ** random.randint(minorder,maxorder)
-            ret[i] = xpow * ret[i]
+            xpow = x ** array(random.randint(minorder,maxorder))
+            ret[i] = xpow * array(ret[i])
     return ret
             
 

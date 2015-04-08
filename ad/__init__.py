@@ -35,30 +35,38 @@ def _get_variables(ad_funcs):
 def _is_constant(x):
     return isinstance(x, Number) or (isinstance(x, np.ndarray) and np.issubdtype(x.dtype, np.number))
 
-def to_auto_diff(x):
-    """
-    Transforms x into a automatically differentiated function (ADF),
-    unless it is already an ADF (or a subclass of it), in which case x is 
-    returned unchanged.
+## EDIT (jackkamm): we no longer convert numbers to ADF objects,
+## instead forcing users to construct the ADF objects beforehand.
+## See README as to why this is necessary.
+## We thus replace all calls to to_auto_diff with check_auto_diff
+# def to_auto_diff(x):
+#     """
+#     Transforms x into a automatically differentiated function (ADF),
+#     unless it is already an ADF (or a subclass of it), in which case x is 
+#     returned unchanged.
 
-    Raises an exception unless 'x' belongs to some specific classes of
-    objects that are known not to depend on ADF objects (which then cannot be
-    considered as constants).
-    """
+#     Raises an exception unless 'x' belongs to some specific classes of
+#     objects that are known not to depend on ADF objects (which then cannot be
+#     considered as constants).
+#     """
 
-    if isinstance(x, ADF):
-        return x
+#     if isinstance(x, ADF):
+#         return x
 
 
-    #if isinstance(x, CONSTANT_TYPES):
-    if _is_constant(x):## EDIT (jackkamm): use _is_constant to allow for ndarray types
-        # constants have no derivatives to define:
-        return ADF(x, {}, {}, {})
+#     #if isinstance(x, CONSTANT_TYPES):
+#     if _is_constant(x):## EDIT (jackkamm): use _is_constant to allow for ndarray types
+#         # constants have no derivatives to define:
+#         return ADF(x, {}, {}, {})
 
-    raise NotImplementedError(
-        'Automatic differentiation not yet supported for {:} objects'.format(
-        type(x))
-        )
+#     raise NotImplementedError(
+#         'Automatic differentiation not yet supported for {:} objects'.format(
+#         type(x))
+#         )
+def check_auto_diff(x):
+    if not isinstance(x,ADF):
+        raise Exception("x must be of ADF type")
+    return x
         
 def _apply_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, 
                       cp_wrt_args):
@@ -122,7 +130,7 @@ def _floor(x):
     equal to x. This is required for the "mod" function.
     """
     if isinstance(x,ADF):
-        ad_funcs = [to_auto_diff(x)]
+        ad_funcs = [check_auto_diff(x)]
 
         x = ad_funcs[0].x
         
@@ -597,7 +605,7 @@ class ADF(object):
         return self**0.5
            
     def __add__(self, val):
-        ad_funcs = [self, to_auto_diff(val)]  # list(map(to_auto_diff, (self, val)))
+        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, (self, val)))
 
         x = ad_funcs[0].x
         y = ad_funcs[1].x
@@ -638,7 +646,7 @@ class ADF(object):
         return self + val
 
     def __mul__(self, val):
-        ad_funcs = [self, to_auto_diff(val)]  # list(map(to_auto_diff, (self, val)))
+        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, (self, val)))
 
         x = ad_funcs[0].x
         y = ad_funcs[1].x
@@ -684,7 +692,7 @@ class ADF(object):
         return self.__truediv__(val)
     
     def __truediv__(self, val):
-        ad_funcs = [self, to_auto_diff(val)]  # list(map(to_auto_diff, (self, val)))
+        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, (self, val)))
 
         x = ad_funcs[0].x
         y = ad_funcs[1].x
@@ -739,17 +747,17 @@ class ADF(object):
         This method shouldn't need any modification if __add__ and __mul__ have
         been defined
         """
-        return self + (-1*val)
+        return self + (NEG_ONE * val)
 
     def __rsub__(self, val):
         """
         This method shouldn't need any modification if __add__ and __mul__ have
         been defined
         """
-        return -1*self + val
+        return NEG_ONE*self + val
 
     def __pow__(self, val):
-        ad_funcs = [self, to_auto_diff(val)]  # list(map(to_auto_diff, (self, val)))
+        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, (self, val)))
         
         x = ad_funcs[0].x
         y = ad_funcs[1].x
@@ -804,7 +812,7 @@ class ADF(object):
         return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
 
     def __rpow__(self,val):
-        return to_auto_diff(val)**self
+        return check_auto_diff(val)**self
         
     def __mod__(self, val):
         return self - val*_floor(self/val)
@@ -813,16 +821,16 @@ class ADF(object):
         return val - self*_floor(val/self)
         
     def __neg__(self):
-        return -1*self
+        return NEG_ONE*self
     
     def __pos__(self):
         return self
         
     def __invert__(self):
-        return -(self+1)
+        return -(self+ONE)
 
     def __abs__(self):
-        ad_funcs = [self]  # list(map(to_auto_diff, [self]))
+        ad_funcs = [self]  # list(map(check_auto_diff, [self]))
 
         x = ad_funcs[0].x
         
@@ -895,21 +903,21 @@ class ADF(object):
         
     # let the respective numeric types take care of the comparison operators
     def __eq__(self, val):
-        ad_funcs = [self, to_auto_diff(val)]  # list(map(to_auto_diff, [self, val]))
+        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, [self, val]))
         return ad_funcs[0].x==ad_funcs[1].x
     
     def __ne__(self, val):
         return not self==val
 
     def __lt__(self, val):
-        ad_funcs = [self, to_auto_diff(val)]  # list(map(to_auto_diff, [self, val]))
+        ad_funcs = [self, check_auto_diff(val)]  # list(map(check_auto_diff, [self, val]))
         return ad_funcs[0].x<ad_funcs[1].x
     
     def __le__(self, val):
         return (self<val) or (self==val)
     
     def __gt__(self, val):
-        # ad_funcs = list(map(to_auto_diff, [self, val]))
+        # ad_funcs = list(map(check_auto_diff, [self, val]))
         # return ad_funcs[0].x>ad_funcs[1].x
         return not self<=val
     
@@ -918,6 +926,10 @@ class ADF(object):
     
     def __nonzero__(self):
         return type(self.x).__nonzero__(self.x)
+
+## EDIT (jackkamm): some useful constants
+NEG_ONE = ADF(-1,{},{},{})
+ONE = ADF(1,{},{},{})
         
 class ADV(ADF):
     """

@@ -14,7 +14,7 @@ PYTHONPATH=.. python -m adarray.test_ad
 from package directory
 """
 from . import *
-from admath import *
+from .ad.admath import *
 import math
 import cmath
 
@@ -31,21 +31,21 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     assert y.tag==None
     
     # test object comparisons
-    assert x==2
-    assert x!=1
+    assert x==array(2)
+    assert x!=array(1)
     assert x  # nonzero
-    assert x<3
-    assert x<=2
-    assert x>1
-    assert x>=2
+    assert x<array(3)
+    assert x<=array(2)
+    assert x>array(1)
+    assert x>=array(2)
     
-    assert y==3
-    assert y!=2
+    assert y==array(3)
+    assert y!=array(2)
     assert y  # nonzero
-    assert y<4
-    assert y<=3
-    assert y>2
-    assert y>=3
+    assert y<array(4)
+    assert y<=array(3)
+    assert y>array(2)
+    assert y>=array(3)
     
     # test underlying object comparisons
     assert x.x==2
@@ -65,7 +65,7 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     
     # test derivatives of ADF (dependent variable) objects
     z_add = x + y
-    assert z_add==xi + yi, z_add
+    assert z_add==array(xi + yi), z_add
     assert z_add.d(x)==1, z_add.d(x)
     assert z_add.d(y)==1, z_add.d(y)
     assert z_add.d(z_add)==0, z_add.d(z_add) # dependent variables not traced
@@ -77,7 +77,7 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     assert z_add.gradient([x, 1, y])==[1, 0, 1], z_add.gradient([x, 1, y])
 
     z_sub = x - y
-    assert z_sub==xi - yi, z_sub
+    assert z_sub==array(xi - yi), z_sub
     assert z_sub.d(x)==1, z_sub.d(x)
     assert z_sub.d(y)==-1, z_sub.d(y)
     assert z_sub.d2(x)==0, z_sub.d2(x)
@@ -86,7 +86,7 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     assert z_sub.gradient([x, y, z_add])==[1, -1, 0], z_sub.gradient([x, y, z_add])
 
     z_mul = x*y
-    assert z_mul==xi*yi, z_mul
+    assert z_mul==array(xi*yi), z_mul
     assert z_mul.d(x)==3, z_mul.d(x)
     assert z_mul.d(y)==2, z_mul.d(y)
     assert z_mul.d2(x)==0, z_mul.d2(x)
@@ -94,7 +94,7 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     assert z_mul.d2c(x, y)==1, z_mul.d2c(x, y)
     
     z_div = x/y
-    assert z_div==xi/yi, z_div
+    assert z_div==array(xi/yi), z_div
     assert z_div.d(x)==1./yi, z_div.d(x)
     assert z_div.d(y)==-xi/(yi**2), z_div.d(y)
     assert z_div.d2(x)==0, z_div.d2(x)
@@ -102,7 +102,7 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     assert z_div.d2c(x, y)==-1./9, z_div.d2c(x, y)
     
     z_pow = x**y
-    assert z_pow==xi**yi, z_pow
+    assert z_pow==array(xi**yi), z_pow
     assert z_pow.d(x)==12, z_pow.d(x)
     assert z_pow.d(y)==(8*math.log(2)), z_pow.d(y)
     assert z_pow.d2(x)==12, z_pow.d2(x)
@@ -118,16 +118,16 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     assert z_mod==(x - y*ad._floor(x/y)), z_mod
     
     z_neg = -x
-    assert z_neg==-1*x.x, z_neg
+    assert z_neg==array(-1*x.x), z_neg
     
     z_pos = +x
-    assert z_pos==x.x, z_pos
+    assert z_pos==array(x.x), z_pos
     
     z_inv = ~x
-    assert z_inv==-(x+1), z_inv
+    assert z_inv==-(x+array(1)), z_inv
     
     z_abs = abs(-x.x)
-    assert z_abs==x, z_abs
+    assert array(z_abs)==x, z_abs
     
     # test coercion methods
     if isinstance(x.x, (int, float)):
@@ -145,10 +145,10 @@ for xi, yi in zip((2, 2.0), (3, 3.0)):
     
     # test gh function wrapper
     def test_func(x, a):
-        return (x[0] + x[1])**a
+        return (x[0] + x[1])**array(a)
     testg, testh = gh(test_func)
-    assert testg([x, y], 3)==((x + y)**3).gradient([x, y]), testg([x, y], 3)
-    assert testh([x, y], 3)==((x + y)**3).hessian([x, y]), testh([x, y], 3)
+    assert testg([x, y], 3)==((x + y)**array(3)).gradient([x, y]), testg([x, y], 3)
+    assert testh([x, y], 3)==((x + y)**array(3)).hessian([x, y]), testh([x, y], 3)
 
     # test jacobian function
     assert jacobian([z_mul, z_add], [x, 1, y])==[[3.0, 0.0, 2.0], 

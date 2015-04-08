@@ -56,7 +56,7 @@ author.
 from __future__ import division
 import math
 import cmath
-from ad import __author__, ADF, to_auto_diff, _apply_chain_rule
+from ad import __author__, ADF, check_auto_diff, _apply_chain_rule
 
 import numpy as np
 numpy_installed = True
@@ -108,7 +108,7 @@ def exp(x):
     Return the exponential value of x
     """
     if isinstance(x,ADF):
-        ad_funcs = list(map(to_auto_diff,[x]))
+        ad_funcs = list(map(check_auto_diff,[x]))
 
         x = ad_funcs[0].x
         
@@ -166,7 +166,7 @@ def expm1(x):
 
     """
     if isinstance(x,ADF):
-        ad_funcs = list(map(to_auto_diff,[x]))
+        ad_funcs = list(map(check_auto_diff,[x]))
 
         x = ad_funcs[0].x
         
@@ -221,7 +221,7 @@ def log(x):
     
     if isinstance(x,ADF):
         
-        ad_funcs = list(map(to_auto_diff,[x]))
+        ad_funcs = list(map(check_auto_diff,[x]))
 
         x = ad_funcs[0].x
         

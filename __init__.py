@@ -1,5 +1,5 @@
 from .ad import *
-from .ad import ADF, _get_variables, to_auto_diff
+from .ad import ADF, _get_variables, check_auto_diff
 
 import numpy as np
 from numbers import Number
@@ -13,7 +13,7 @@ def array(x):
         x = np.asarray(x)
 
     if np.issubdtype(x.dtype, np.number):
-        return x
+        return ADF(x,{},{},{})
 
     # get the variables to differentiate against
     adentries = []
@@ -104,10 +104,10 @@ ADF.sum = adarray_sum
 ''' implements product rule for multiplication-like operations, e.g. matrix/tensor multiplication, convolution'''
 def ad_product(prod):
     def f(a,b, *args, **kwargs):
-        if not isinstance(a, ADF) and not isinstance(b, ADF):
-            return prod(a,b)
+        #if not isinstance(a, ADF) and not isinstance(b, ADF):
+        #    return prod(a,b)
 
-        a,b = to_auto_diff(a), to_auto_diff(b)
+        a,b = check_auto_diff(a), check_auto_diff(b)
         x = prod(a.x,b.x, *args, **kwargs)
 
         variables = _get_variables([a,b])
