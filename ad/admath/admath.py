@@ -107,38 +107,41 @@ def exp(x):
     """
     Return the exponential value of x
     """
-    f = np.exp(x.x)
-    if x._lc is None:
-        return ADF(f, None, None, None)
+    try:
+        f = np.exp(x.x)
+        if x._lc is None:
+            return ADF(f, None, None, None)
 
-    ad_funcs = list(map(check_auto_diff,[x]))
+        ad_funcs = list(map(check_auto_diff,[x]))
 
-    x = ad_funcs[0].x
+        xx = ad_funcs[0].x
 
-    variables = _get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
 
-    if not variables or isinstance(f, bool):
-        return ADF(f,None,None,None)
+        if not variables or isinstance(f, bool):
+            return ADF(f,None,None,None)
 
-    ########################################
+        ########################################
 
-    # Calculation of the derivatives with respect to the arguments
-    # of f (ad_funcs):
+        # Calculation of the derivatives with respect to the arguments
+        # of f (ad_funcs):
 
-    lc_wrt_args = [np.exp(x)]
-    qc_wrt_args = [np.exp(x)]
-    cp_wrt_args = 0.0
+        lc_wrt_args = [np.exp(xx)]
+        qc_wrt_args = [np.exp(xx)]
+        cp_wrt_args = 0.0
 
-    ########################################
-    # Calculation of the derivative of f with respect to all the
-    # variables (Variable) involved.
+        ########################################
+        # Calculation of the derivative of f with respect to all the
+        # variables (Variable) involved.
 
-    lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
-                                ad_funcs,variables,lc_wrt_args,qc_wrt_args,
-                                cp_wrt_args)
+        lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
+                                    ad_funcs,variables,lc_wrt_args,qc_wrt_args,
+                                    cp_wrt_args)
 
-    # The function now returns an ADF object:
-    return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
+        # The function now returns an ADF object:
+        return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
+    except:
+        return np.exp(x)
 
 
 def expm1(x):
@@ -153,38 +156,41 @@ def expm1(x):
         1.0000050000166668e-05
 
     """
-    f = np.expm1(x.x)
-    if x._lc is None:
-        return ADF(f, None, None, None)
+    try:
+        f = np.expm1(x.x)
+        if x._lc is None:
+            return ADF(f, None, None, None)
 
-    ad_funcs = list(map(check_auto_diff,[x]))
+        ad_funcs = list(map(check_auto_diff,[x]))
 
-    x = ad_funcs[0].x
+        xx = ad_funcs[0].x
 
-    variables = _get_variables(ad_funcs)
+        variables = _get_variables(ad_funcs)
 
-    if not variables or isinstance(f, bool):
-        return ADF(f,None,None,None)
+        if not variables or isinstance(f, bool):
+            return ADF(f,None,None,None)
 
-    ########################################
+        ########################################
 
-    # Calculation of the derivatives with respect to the arguments
-    # of f (ad_funcs):
+        # Calculation of the derivatives with respect to the arguments
+        # of f (ad_funcs):
 
-    lc_wrt_args = [np.exp(x)]
-    qc_wrt_args = [np.exp(x)]
-    cp_wrt_args = 0.0
+        lc_wrt_args = [np.exp(xx)]
+        qc_wrt_args = [np.exp(xx)]
+        cp_wrt_args = 0.0
 
-    ########################################
-    # Calculation of the derivative of f with respect to all the
-    # variables (Variable) involved.
+        ########################################
+        # Calculation of the derivative of f with respect to all the
+        # variables (Variable) involved.
 
-    lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
-                                ad_funcs,variables,lc_wrt_args,qc_wrt_args,
-                                cp_wrt_args)
+        lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
+                                    ad_funcs,variables,lc_wrt_args,qc_wrt_args,
+                                    cp_wrt_args)
 
-    # The function now returns an ADF object:
-    return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
+        # The function now returns an ADF object:
+        return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
+    except:
+        return np.expm1(x)
     
 
 ## EDIT (jackkamm): unlike in original admath, this does NOT take a base argument    
@@ -195,35 +201,38 @@ def log(x):
     With two arguments, return the logarithm of x to the given base, calculated 
     as ``log(x)/log(base)``.
     """
-    f = np.log(x.x)
-    if x._lc is None:
-        return ADF(f, None, None, None)
-          
-    ad_funcs = list(map(check_auto_diff,[x]))
+    try:
+        f = np.log(x.x)
+        if x._lc is None:
+            return ADF(f, None, None, None)
 
-    x = ad_funcs[0].x
+        ad_funcs = list(map(check_auto_diff,[x]))
 
-    variables = _get_variables(ad_funcs)
+        xx = ad_funcs[0].x
 
-    if not variables or isinstance(f, bool):
-        return ADF(f,None,None,None)
+        variables = _get_variables(ad_funcs)
 
-    ########################################
+        if not variables or isinstance(f, bool):
+            return ADF(f,None,None,None)
 
-    # Calculation of the derivatives with respect to the arguments
-    # of f (ad_funcs):
+        ########################################
 
-    lc_wrt_args = [1./x]
-    qc_wrt_args = [-1./x**2]
-    cp_wrt_args = 0.0
+        # Calculation of the derivatives with respect to the arguments
+        # of f (ad_funcs):
 
-    ########################################
-    # Calculation of the derivative of f with respect to all the
-    # variables (Variable) involved.
+        lc_wrt_args = [1./xx]
+        qc_wrt_args = [-1./xx**2]
+        cp_wrt_args = 0.0
 
-    lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
-                                ad_funcs,variables,lc_wrt_args,qc_wrt_args,
-                                cp_wrt_args)
+        ########################################
+        # Calculation of the derivative of f with respect to all the
+        # variables (Variable) involved.
 
-    # The function now returns an ADF object:
-    return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
+        lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
+                                    ad_funcs,variables,lc_wrt_args,qc_wrt_args,
+                                    cp_wrt_args)
+
+        # The function now returns an ADF object:
+        return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
+    except:
+        return np.log(x)
