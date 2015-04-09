@@ -141,4 +141,7 @@ outer = ad_product(np.outer)
 
 
 def diag(x):
-    return x.apply(np.diag)
+    try:
+        return x.apply(np.diag)
+    except:
+        return np.diag(x)
