@@ -1,5 +1,5 @@
 from .ad import *
-from .ad import ADF, _get_variables, to_auto_diff, _apply_chain_rule, _is_constant
+from .ad import ADF, _get_variables, to_auto_diff, _apply_chain_rule, _is_constant, constant, null
 from .ad import admath
 
 import numpy as np
@@ -11,13 +11,13 @@ def array(x):
         return x
 
     if isinstance(x, Number):
-        return ADF(x,None,None,None)
+        return constant(x)
 
     if not isinstance(x, np.ndarray):
         x = np.asarray(x)
 
     if np.issubdtype(x.dtype, np.number):
-        return ADF(x,None,None,None)
+        return constant(x)
 
     # get the variables to differentiate against
     adentries = []
@@ -70,8 +70,8 @@ ADF.__len__ = ad_len
 ''' apply f to x and all its derivatives '''
 def ad_apply(self, f, *args, **kwargs):
     ret_x = f(self.x, *args, **kwargs)
-    if self._lc is None:
-        return ADF(ret_x, None, None, None)
+    if self._lc is null:
+        return constant(ret_x)
 
     lc, qc, cp = {},{},{}
     for ret_d, x_d in zip((lc, qc, cp), (self._lc, self._qc, self._cp)):

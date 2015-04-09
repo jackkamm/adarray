@@ -21,17 +21,29 @@ __author__ = 'Abraham Lee' # with some minor edits by Jack Kamm
 
 __all__ = ['adnumber', 'gh', 'jacobian']
 
+## null is used to represent derivatives of constant variables
+class nulldict(dict):
+    def __init__(self):
+        super(dict,self).__init__()
+    def __setitem__(self, *args, **kwargs):
+        raise NotImplementedError("nulldict is constant")
+null = nulldict()
+## None is used to disallow derivatives
+## ADF(3, null, null, null) = constant
+## ADF(3, lc, None, None) = a variable with first-order derivatives lc, and with second-order derivatives disallowed
 
-## EDIT (jackkamm): no longer a class method
+def constant(x):
+    return ADF(x, null, null, null)
+
+## EDIT (jackkamm): no longer a class method.
 def _get_variables(ad_funcs):
-    # List of involved varibles (ADV objects):
-    lclist = [f._lc for f in ad_funcs if f._lc is not None]
-    if len(lclist) == 0:
-        return False
-    variables = set()
-    for lc in lclist:
-        variables |= set(lc)
-    return variables
+    coeffs_list = [f._lc for f in ad_funcs if f._lc is not null]
+    if len(coeffs_list) == 0:
+        return None
+    vars = set()
+    for coeffs in coeffs_list:
+        vars |= set(coeffs)
+    return vars
 
 ## EDIT (jackkamm): allow certain np.ndarrays to be constants
 def _is_constant(x):
@@ -55,31 +67,34 @@ def to_auto_diff(x):
     #if isinstance(x, CONSTANT_TYPES):
     if _is_constant(x):## EDIT (jackkamm): use _is_constant to allow for ndarray types
         # constants have no derivatives to define:
-        return ADF(x, None, None, None)
+        return constant(x)
 
     raise NotImplementedError(
         'Automatic differentiation not yet supported for {:} objects'.format(
         type(x))
         )
 
-        
-def _apply_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, 
-                      cp_wrt_args):
-    """
-    This function applies the first and second-order chain rule to calculate
-    the derivatives with respect to original variables (i.e., objects created 
-    with the ``adnumber(...)`` constructor).
-    
-    For reference:
-    - ``lc`` refers to "linear coefficients" or first-order terms
-    - ``qc`` refers to "quadratic coefficients" or pure second-order terms
-    - ``cp`` refers to "cross-product" second-order terms
-    
-    """
+
+def _lin_chain_rule(ad_funcs, variables, lc_wrt_args):
+    ''' applies first order chain rule '''
     num_funcs = len(ad_funcs)
     
     # Initial value (is updated below):
     lc_wrt_vars = dict((var, 0.) for var in variables)
+
+    # The chain rule is used (we already have
+    # derivatives_wrt_args):
+    for j, var1 in enumerate(variables):
+        for (f, dh) in zip(ad_funcs, lc_wrt_args):
+            fdv1 = f.d(var1)
+            # first order terms
+            lc_wrt_vars[var1] += dh*fdv1
+    return lc_wrt_vars
+
+def _quad_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args):
+    num_funcs = len(ad_funcs)
+    
+    # Initial value (is updated below):
     qc_wrt_vars = dict((var, 0.) for var in variables)
     cp_wrt_vars = {}
     for i,var1 in enumerate(variables):
@@ -91,16 +106,11 @@ def _apply_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args,
     # derivatives_wrt_args):
     for j, var1 in enumerate(variables):
         for k, var2 in enumerate(variables):
-            for (f, dh, d2h) in zip(ad_funcs, lc_wrt_args, qc_wrt_args):
-                
+            for (f, dh, d2h) in zip(ad_funcs, lc_wrt_args, qc_wrt_args):               
                 if j==k:
                     fdv1 = f.d(var1)
-                    # first order terms
-                    lc_wrt_vars[var1] += dh*fdv1
-
                     # pure second-order terms
                     qc_wrt_vars[var1] += dh*f.d2(var1) + d2h*fdv1**2
-
                 elif j<k:
                     # cross-product second-order terms
                     tmp = dh*f.d2c(var1, var2) + d2h*f.d(var1)*f.d(var2)
@@ -117,6 +127,23 @@ def _apply_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args,
                                    ad_funcs[0].d(var2)*ad_funcs[1].d(var1))
                 cp_wrt_vars[(var1, var2)] += tmp
                 
+    return (qc_wrt_vars, cp_wrt_vars)
+        
+def _apply_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, 
+                      cp_wrt_args):
+    """
+    This function applies the first and second-order chain rule to calculate
+    the derivatives with respect to original variables (i.e., objects created 
+    with the ``adnumber(...)`` constructor).
+    
+    For reference:
+    - ``lc`` refers to "linear coefficients" or first-order terms
+    - ``qc`` refers to "quadratic coefficients" or pure second-order terms
+    - ``cp`` refers to "cross-product" second-order terms
+    
+    """
+    lc_wrt_vars = _lin_chain_rule(ad_funcs, variables, lc_wrt_args)
+    qc_wrt_vars, cp_wrt_vars = _quad_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args)
     return (lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
     
 def _floor(x):
@@ -126,8 +153,8 @@ def _floor(x):
     """
     x = to_auto_diff(x)
     f = numpy.floor(x.x)
-    if x._lc is None:
-        return ADF(f,None,None,None)
+    if x._lc is null:
+        return constant(f)
     ad_funcs = [x]
 
     x = ad_funcs[0].x
@@ -136,7 +163,7 @@ def _floor(x):
 
     if not variables or isinstance(f, bool):
         #return f
-        return ADF(f,None,None,None)
+        return constant(f)
 
     ########################################
 
@@ -353,7 +380,7 @@ class ADF(object):
             if isinstance(x, ADF):
                 try:
                     tmp = self._lc[x]
-                except (KeyError,TypeError):
+                except LookupError:
                     #tmp = 0.0
                     tmp = self.zero() ## EDIT (jackkamm)
                 return tmp
@@ -406,7 +433,7 @@ class ADF(object):
             if isinstance(x, ADF):
                 try:
                     tmp = self._qc[x]
-                except (KeyError,TypeError):
+                except LookupError:
                     #tmp = 0.0
                     tmp = self.zero() ## EDIT (jackkamm)
                 return tmp
@@ -473,10 +500,10 @@ class ADF(object):
                 if isinstance(x, ADF) and isinstance(y, ADF):
                     try:
                         tmp = self._cp[(x, y)]
-                    except (KeyError,TypeError):
+                    except LookupError:
                         try:
                             tmp = self._cp[(y, x)]
-                        except (KeyError,TypeError):
+                        except LookupError:
                             #tmp = 0.0
                             tmp = self.zero() ## EDIT
                 else:
@@ -599,8 +626,8 @@ class ADF(object):
         val = to_auto_diff(val)
 
         f = self.x + val.x
-        if self._lc is None and val._lc is None:
-            return ADF(f, None, None, None)
+        if self._lc is null and val._lc is null:
+            return constant(f)
 
         ad_funcs = [self, val]
 
@@ -612,7 +639,7 @@ class ADF(object):
         
         if not variables or isinstance(f, bool):
             #return f
-            return ADF(f,None,None,None)
+            return constant(f)
 
         ########################################
 
@@ -639,8 +666,8 @@ class ADF(object):
         val = to_auto_diff(val)
 
         f = self.x * val.x
-        if self._lc is None and val._lc is None:
-            return ADF(f, None, None, None)
+        if self._lc is null and val._lc is null:
+            return constant(f)
 
         ad_funcs = [self, val]
         x = ad_funcs[0].x
@@ -649,7 +676,7 @@ class ADF(object):
         variables = _get_variables(ad_funcs)
         
         if not variables or isinstance(f, bool):
-            return ADF(f,None,None,None)
+            return constant(f)
             #return f
 
         ########################################
@@ -680,8 +707,8 @@ class ADF(object):
     def __truediv__(self, val):
         val = to_auto_diff(val)
         f = self.x / val.x
-        if self._lc is None and val._lc is None:
-            return ADF(f, None, None, None)
+        if self._lc is null and val._lc is null:
+            return constant(f)
 
         ad_funcs = [self, val]  # list(map(check_auto_diff, (self, val)))
 
@@ -692,7 +719,7 @@ class ADF(object):
         
         if not variables or isinstance(f, bool):
             #return f
-            return ADF(f,None,None,None)
+            return constant(f)
 
         ########################################
 
@@ -733,8 +760,8 @@ class ADF(object):
     def __pow__(self, val):
         val = to_auto_diff(val)
         f = self.x ** val.x
-        if self._lc is None and val._lc is None:
-            return ADF(f, None, None, None)
+        if self._lc is null and val._lc is null:
+            return constant(f)
 
         ad_funcs = [self, val]  # list(map(check_auto_diff, (self, val)))
         
@@ -745,7 +772,7 @@ class ADF(object):
         
         if not variables or isinstance(f, bool):
             #return f
-            return ADF(f, None, None, None)
+            return constant(f)
 
         ########################################
 
@@ -805,8 +832,8 @@ class ADF(object):
 
     def __abs__(self):
         f = abs(self.x)
-        if self._lc is None:
-            return ADF(f, None, None, None)
+        if self._lc is null:
+            return constant(f)
 
         ad_funcs = [self]  # list(map(check_auto_diff, [self]))
 
@@ -816,7 +843,7 @@ class ADF(object):
         
         if not variables or isinstance(f, bool):
             #return f
-            return ADF(f,None,None,None)
+            return constant(f)
 
         ########################################
 

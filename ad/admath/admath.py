@@ -56,7 +56,7 @@ author.
 from __future__ import division
 import math
 import cmath
-from adarray import ADF, to_auto_diff, _apply_chain_rule, _get_variables
+from adarray import ADF, to_auto_diff, _apply_chain_rule, _get_variables, null, constant
 
 import numpy as np
 import scipy, scipy.special
@@ -112,8 +112,8 @@ def exp(x):
     """
     try:
         f = np.exp(x.x)
-        if x._lc is None:
-            return ADF(f, None, None, None)
+        if x._lc is null:
+            return constant(f)
 
         ad_funcs = [x]
 
@@ -122,7 +122,7 @@ def exp(x):
         variables = _get_variables(ad_funcs)
 
         if not variables or isinstance(f, bool):
-            return ADF(f,None,None,None)
+            return constant(f)
 
         ########################################
 
@@ -161,8 +161,8 @@ def expm1(x):
     """
     try:
         f = np.expm1(x.x)
-        if x._lc is None:
-            return ADF(f, None, None, None)
+        if x._lc is null:
+            return constant(f)
 
         ad_funcs = [x]
 
@@ -171,7 +171,7 @@ def expm1(x):
         variables = _get_variables(ad_funcs)
 
         if not variables or isinstance(f, bool):
-            return ADF(f,None,None,None)
+            return constant(f)
 
         ########################################
 
@@ -206,8 +206,8 @@ def log(x):
     """
     try:
         f = np.log(x.x)
-        if x._lc is None:
-            return ADF(f, None, None, None)
+        if x._lc is null:
+            return constant(f)
 
         ad_funcs = [x]
 
@@ -216,7 +216,7 @@ def log(x):
         variables = _get_variables(ad_funcs)
 
         if not variables or isinstance(f, bool):
-            return ADF(f,None,None,None)
+            return constant(f)
 
         ########################################
 
@@ -247,8 +247,8 @@ def expi(x):
     """
     try:
         f = scipy.special.expi(x.x)
-        if x._lc is None:
-            return ADF(f, None, None, None)
+        if x._lc is null:
+            return constant(f)
 
         ad_funcs = [x]
 
@@ -257,7 +257,7 @@ def expi(x):
         variables = _get_variables(ad_funcs)
 
         if not variables or isinstance(f, bool):
-            return ADF(f,None,None,None)
+            return constant(f)
 
         ########################################
 
