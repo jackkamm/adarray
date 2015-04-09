@@ -56,7 +56,7 @@ author.
 from __future__ import division
 import math
 import cmath
-from adarray import ADF, check_auto_diff, _apply_chain_rule, _get_variables
+from adarray import ADF, to_auto_diff, _apply_chain_rule, _get_variables
 
 import numpy as np
 numpy_installed = True
@@ -112,7 +112,7 @@ def exp(x):
         if x._lc is None:
             return ADF(f, None, None, None)
 
-        ad_funcs = list(map(check_auto_diff,[x]))
+        ad_funcs = [x]
 
         xx = ad_funcs[0].x
 
@@ -161,7 +161,7 @@ def expm1(x):
         if x._lc is None:
             return ADF(f, None, None, None)
 
-        ad_funcs = list(map(check_auto_diff,[x]))
+        ad_funcs = [x]
 
         xx = ad_funcs[0].x
 
@@ -206,7 +206,7 @@ def log(x):
         if x._lc is None:
             return ADF(f, None, None, None)
 
-        ad_funcs = list(map(check_auto_diff,[x]))
+        ad_funcs = [x]
 
         xx = ad_funcs[0].x
 

@@ -51,8 +51,8 @@ def get_random_monomials(args, shape=None, maxorder=5, minorder=1):
     for x in args:
         assert isinstance(x, ADF)
         for i,_ in np.ndenumerate(ret):
-            xpow = x ** array(random.randint(minorder,maxorder))
-            ret[i] = xpow * array(ret[i])
+            xpow = x ** random.randint(minorder,maxorder)
+            ret[i] = xpow * ret[i]
     return ret
             
 

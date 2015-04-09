@@ -21,45 +21,21 @@ of using loops in Python.
 However, there are two important downsides:
 (1) Many functions, especially in admath, no longer work with ad(array) objects, and
     need to be reimplemented.
-(2) ADF + number, ADF * ndarray, etc. NO LONGER WORK. Only ADF + ADF, ADF * ADF, etc.
-    is allowed. Everything must be converted to ADF type by a call to adarray.array().
+(2) When doing arithmetic between an ADF and non-ADF object, the ADF object MUST be
+    on the left. Otherwise an exception will be raised.
 
-    i.e. this is now INCORRECT:
+    The reason for this is that, if the non-ADF object is an numpy.ndarray, and
+    it is on the left, then it will try to perform the arithmetic operation
+    element-wise, and ultimately return an ndarray of ADF objects.
+    Whereas, we want an ADF object containing an ndarray.
 
-    x = adnumber(3)
-    y = 7
-    z = x+y
+    There seems to be no way to override this behavior of numpy.ndarray,
+    hence we disallow all arithmetic operations with the ADF object on the
+    right, to prevent this element-wise operation from succeeding.
 
-
-    This is the CORRECT way:
-
-    x = adnumber(3)
-    y = array(7)
-    z = x+y
-
-
-    WARNING: do NOT do
-
-    y = adnumber(7)
-
-    UNLESS you intend to take derivatives with respect to y later.
-    Doing y = adnumber(y) will cause derivatives wrt y to be tracked,
-    causing unnecessary slowdown if y is a constant.
-
-    The reason for this change is because, we initially got undesired result for
-    numpy.array * ad(array), or numpy.array / ad(array), (where the numpy object
-    is on the left, and the ad object is on the right). 
-    Basically, the object on the left has its __mul__ or __div__ method 
-    called, and  numpy will resort to doing elementwise operations because it doesn't 
-    recognize the  ad() object; this will result in an array([ad(number),...])
-    instead of a single ad(array([number,...])) object.
-
-    Ideally, we could get numpy to call ADF.__rmul__ or ADF.__radd__ instead
-    of doing the element-wise operations.
-    Unfortunately, there doesn't seem to be any way to do this.
-    So to be safe, we explicitly require ADF objects to multiply/divide/etc
-    other ADF objects, and not allow multiplation with non ADF objects 
-    such as float.
+    Thus you have two choices:
+    (a) Make sure the ADF object is always on the left
+    (b) Always cast the left object to an ADF type, using adarray.array()    
 
 As another speedup, we will modify the ad() object so that it has the option to
 only keep track of first-order derivatives (TODO). We have found that, for some 
