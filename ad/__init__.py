@@ -380,7 +380,7 @@ class ADF(object):
             if isinstance(x, ADF):
                 try:
                     tmp = self._lc[x]
-                except LookupError:
+                except KeyError:
                     #tmp = 0.0
                     tmp = self.zero() ## EDIT (jackkamm)
                 return tmp
@@ -433,7 +433,7 @@ class ADF(object):
             if isinstance(x, ADF):
                 try:
                     tmp = self._qc[x]
-                except LookupError:
+                except KeyError:
                     #tmp = 0.0
                     tmp = self.zero() ## EDIT (jackkamm)
                 return tmp
@@ -500,10 +500,10 @@ class ADF(object):
                 if isinstance(x, ADF) and isinstance(y, ADF):
                     try:
                         tmp = self._cp[(x, y)]
-                    except LookupError:
+                    except KeyError:
                         try:
                             tmp = self._cp[(y, x)]
-                        except LookupError:
+                        except KeyError:
                             #tmp = 0.0
                             tmp = self.zero() ## EDIT
                 else:
