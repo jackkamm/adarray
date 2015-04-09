@@ -59,6 +59,8 @@ import cmath
 from adarray import ADF, to_auto_diff, _apply_chain_rule, _get_variables
 
 import numpy as np
+import scipy, scipy.special
+
 numpy_installed = True
                                
 __all__ = [
@@ -80,7 +82,8 @@ __all__ = [
     ## other miscellaneous functions that are conveniently defined
     #'csc', 'acsc', 'csch', 'acsch',
     #'sec', 'asec', 'sech', 'asech',
-    #'cot', 'acot', 'coth', 'acoth'
+    #'cot', 'acot', 'coth', 'acoth',
+    'expi',
     ]
 
             
@@ -236,3 +239,44 @@ def log(x):
         return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
     except:
         return np.log(x)
+
+
+def expi(x):
+    """
+    Returns the exponential integral Ei(x) = -int_{-x}^{\infty} e^{-t}/t dt
+    """
+    try:
+        f = scipy.special.expi(x.x)
+        if x._lc is None:
+            return ADF(f, None, None, None)
+
+        ad_funcs = [x]
+
+        xx = ad_funcs[0].x
+
+        variables = _get_variables(ad_funcs)
+
+        if not variables or isinstance(f, bool):
+            return ADF(f,None,None,None)
+
+        ########################################
+
+        # Calculation of the derivatives with respect to the arguments
+        # of f (ad_funcs):
+
+        lc_wrt_args = [np.exp(xx)/xx]
+        qc_wrt_args = [np.exp(xx)/xx - np.exp(xx)/xx**2]
+        cp_wrt_args = 0.0
+
+        ########################################
+        # Calculation of the derivative of f with respect to all the
+        # variables (Variable) involved.
+
+        lc_wrt_vars,qc_wrt_vars,cp_wrt_vars = _apply_chain_rule(
+                                    ad_funcs,variables,lc_wrt_args,qc_wrt_args,
+                                    cp_wrt_args)
+
+        # The function now returns an ADF object:
+        return ADF(f, lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
+    except:
+        return scipy.special.expi(x)
