@@ -1,6 +1,6 @@
 from __future__ import division
 import pytest
-from . import adnumber, ADF, array, dot, tensordot, fftconvolve, sum
+from . import adnumber, ADF, array, dot, tensordot, fftconvolve, sum, get_order
 import numpy as np
 import random
 
@@ -22,6 +22,9 @@ def check_gradient(x_ad, x_np, *vars):
 
     grad1,grad2 = [np.array(g) for g in grad1,grad2]
     assert np.max(np.abs(np.log(grad1 / grad2))) < 1e-12
+
+    if get_order() == 1:
+        return
 
     hess1 = x_ad.hessian(vars)
     hess2 = []

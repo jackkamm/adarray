@@ -26,14 +26,32 @@ class nulldict(dict):
     def __init__(self):
         super(dict,self).__init__()
     def __setitem__(self, *args, **kwargs):
-        raise NotImplementedError("nulldict is constant")
+        raise NotImplementedError("nulldict is immutable")
 null = nulldict()
 ## None is used to disallow derivatives
 ## ADF(3, null, null, null) = constant
 ## ADF(3, lc, None, None) = a variable with first-order derivatives lc, and with second-order derivatives disallowed
 
+## this determines whether to keep track of second order derivatives or not
+def set_order(order):
+    global _order, null2
+    _order = order
+    if _order == 2:
+        null2 = null
+    elif _order == 1:
+        null2 = None
+    else:
+        raise NotImplementedError("Can only keep track of first-order or second-order derivatives")
+
+def get_order():
+    return _order
+
+#_order, null2 = 2, null
+_order, null2 = 1, None
+set_order(_order)
+
 def constant(x):
-    return ADF(x, null, null, null)
+    return ADF(x, null, null2, null2)
 
 ## EDIT (jackkamm): no longer a class method.
 def _get_variables(ad_funcs):
@@ -66,7 +84,6 @@ def to_auto_diff(x):
 
     #if isinstance(x, CONSTANT_TYPES):
     if _is_constant(x):## EDIT (jackkamm): use _is_constant to allow for ndarray types
-        # constants have no derivatives to define:
         return constant(x)
 
     raise NotImplementedError(
@@ -143,7 +160,10 @@ def _apply_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args,
     
     """
     lc_wrt_vars = _lin_chain_rule(ad_funcs, variables, lc_wrt_args)
-    qc_wrt_vars, cp_wrt_vars = _quad_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args)
+    if _order == 2:
+        qc_wrt_vars, cp_wrt_vars = _quad_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args)
+    else:
+        qc_wrt_vars, cp_wrt_vars = None,None
     return (lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
     
 def _floor(x):
@@ -171,8 +191,11 @@ def _floor(x):
     # of f (ad_funcs):
 
     lc_wrt_args = [0.0]
-    qc_wrt_args = [0.0]
-    cp_wrt_args = 0.0
+    if _order == 2:
+        qc_wrt_args = [0.0]
+        cp_wrt_args = 0.0
+    else:
+        qc_wrt_args, cp_wrt_args = None,None
 
     ########################################
     # Calculation of the derivative of f with respect to all the
@@ -646,8 +669,11 @@ class ADF(object):
         # Calculation of the derivatives with respect to the arguments
         # of f (ad_funcs):
         lc_wrt_args = [1., 1.]
-        qc_wrt_args = [0., 0.]
-        cp_wrt_args = 0.
+        if _order == 2:
+            qc_wrt_args = [0., 0.]
+            cp_wrt_args = 0.
+        else:
+            qc_wrt_args, cp_wrt_args = None,None
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -684,8 +710,11 @@ class ADF(object):
         # Calculation of the derivatives with respect to the arguments
         # of f (ad_funcs):
         lc_wrt_args = [y, x]
-        qc_wrt_args = [0., 0.]
-        cp_wrt_args = 1.
+        if _order == 2:
+            qc_wrt_args = [0., 0.]
+            cp_wrt_args = 1.
+        else:
+            qc_wrt_args, cp_wrt_args = None,None
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -726,8 +755,11 @@ class ADF(object):
         # Calculation of the derivatives with respect to the arguments
         # of f (ad_funcs):
         lc_wrt_args = [1./y, -x/y**2]
-        qc_wrt_args = [0., 2*x/y**3]
-        cp_wrt_args = -1./y**2
+        if _order == 2:
+            qc_wrt_args = [0., 2*x/y**3]
+            cp_wrt_args = -1./y**2
+        else:
+            qc_wrt_args, cp_wrt_args = None,None
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -782,23 +814,35 @@ class ADF(object):
         if x.imag or y.imag:
             if abs(x)>0 and ad_funcs[1].d(ad_funcs[1])!=0:
                 lc_wrt_args = [y*x**(y - 1), x**y*cmath.log(x)]
-                qc_wrt_args = [y*(y - 1)*x**(y - 2), x**y*(cmath.log(x))**2]
-                cp_wrt_args = x**(y - 1)*(y*cmath.log(x) + 1)/x
+                if _order == 2:
+                    qc_wrt_args = [y*(y - 1)*x**(y - 2), x**y*(cmath.log(x))**2]
+                    cp_wrt_args = x**(y - 1)*(y*cmath.log(x) + 1)/x
+                else:
+                    qc_wrt_args, cp_wrt_args = None,None
             else:
                 lc_wrt_args = [y*x**(y - 1), 0.]
-                qc_wrt_args = [y*(y - 1)*x**(y - 2), 0.]
-                cp_wrt_args = 0.
+                if _order == 2:
+                    qc_wrt_args = [y*(y - 1)*x**(y - 2), 0.]
+                    cp_wrt_args = 0.
+                else:
+                    qc_wrt_args, cp_wrt_args = None,None
         else:
             x = x.real
             y = y.real
             if x>0:
                 lc_wrt_args = [y*x**(y - 1), x**y*math.log(x)]
-                qc_wrt_args = [y*(y - 1)*x**(y - 2), x**y*(math.log(x))**2]
-                cp_wrt_args = x**y*(y*math.log(x) + 1)/x
+                if _order == 2:
+                    qc_wrt_args = [y*(y - 1)*x**(y - 2), x**y*(math.log(x))**2]
+                    cp_wrt_args = x**y*(y*math.log(x) + 1)/x
+                else:
+                    qc_wrt_args, cp_wrt_args = None,None
             else:
                 lc_wrt_args = [y*x**(y - 1), 0.]
-                qc_wrt_args = [y*(y - 1)*x**(y - 2), 0.]
-                cp_wrt_args = 0.
+                if _order == 2:
+                    qc_wrt_args = [y*(y - 1)*x**(y - 2), 0.]
+                    cp_wrt_args = 0.
+                else:
+                    qc_wrt_args, cp_wrt_args = None,None
             
 
         ########################################
@@ -856,8 +900,11 @@ class ADF(object):
         except ZeroDivisionError:
             lc_wrt_args = [0.0]
         
-        qc_wrt_args = [0.0]
-        cp_wrt_args = 0.0
+        if _order == 2:
+            qc_wrt_args = [0.0]
+            cp_wrt_args = 0.0
+        else:
+            qc_wrt_args, cp_wrt_args = None,None
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -935,9 +982,12 @@ class ADV(ADF):
     A convenience class for distinguishing between FUNCTIONS (ADF) and VARIABLES
     """
     def __init__(self, value, tag=None):
-        # The first derivative of a variable wrt itself is always 1.0 and 
-        # the second is always 0.0
-        super(ADV, self).__init__(value, {self:1.0}, {self:0.0}, {}, tag=tag)
+        if _order == 2:
+            # The first derivative of a variable wrt itself is always 1.0 and 
+            # the second is always 0.0
+            super(ADV, self).__init__(value, {self:1.0}, {self:0.0}, {}, tag=tag)
+        elif _order == 1:
+            super(ADV, self).__init__(value, {self:1.0}, None, None, tag=tag)
 
 ## EDITED (jackkamm): must now take in a constant scalar type, or an ndarray/list of such.
 ## Use array() for ADF types or list/ndarrays of ADF types

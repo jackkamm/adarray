@@ -1,10 +1,18 @@
 from .ad import *
-from .ad import ADF, _get_variables, to_auto_diff, _apply_chain_rule, _is_constant, constant, null
+from .ad import ADF, _get_variables, to_auto_diff, _apply_chain_rule, _is_constant, constant, null, get_order
 from .ad import admath
 
 import numpy as np
 from numbers import Number
 import scipy, scipy.signal
+
+def _make_derivs_dicts():
+    if get_order() == 1:
+        # return dictionary for first order terms
+        return {}, None, None
+    elif get_order() == 2:
+        # dictionaries for first order, second order, cross terms
+        return {}, {}, {}
 
 def array(x):
     if isinstance(x, ADF):
@@ -29,13 +37,13 @@ def array(x):
     variables = _get_variables([xi for _,xi in adentries])
 
     # initialize the dictionaries of derivatives
-    lc_dict, qc_dict, cp_dict = {}, {}, {}
-    if variables:
-        d_dicts = (lc_dict, qc_dict, cp_dict)
+    d_dicts = lc,qc,cp = _make_derivs_dicts()
+    d_dicts = [d for d in d_dicts if d is not None]
 
+    if variables:
         # fill the dictionaries of derivatives
         for i,xi in adentries:
-            for xi_d, x_d in zip((xi._lc, xi._qc, xi._cp), d_dicts):
+            for xi_d, x_d in zip((xi._lc, xi._qc, xi._cp)[:len(d_dicts)], d_dicts):
                 for k in xi_d:
                     if k not in x_d:
                         x_d[k] = np.zeros(x.shape)
@@ -51,7 +59,7 @@ def array(x):
         else:
             raise Exception
 
-    return ADF(x, lc_dict, qc_dict, cp_dict)
+    return ADF(x, lc, qc, cp)
 
 
 '''add array functionality to ADF'''
@@ -73,8 +81,9 @@ def ad_apply(self, f, *args, **kwargs):
     if self._lc is null:
         return constant(ret_x)
 
-    lc, qc, cp = {},{},{}
-    for ret_d, x_d in zip((lc, qc, cp), (self._lc, self._qc, self._cp)):
+    d_dicts = lc, qc, cp = _make_derivs_dicts()
+    d_dicts = [d for d in d_dicts if d is not None]
+    for ret_d, x_d in zip(d_dicts, (self._lc, self._qc, self._cp)[:len(d_dicts)]):
         for v in x_d:
             ret_d[v] = f(x_d[v], *args, **kwargs)
     return ADF(ret_x, lc, qc, cp)
@@ -91,8 +100,9 @@ def ad_setitem(self, key, value):
         raise NotImplementedError
     self.x[key] = value
     for derivatives in (self._lc, self._qc, self._cp):
-        for direction in derivatives:
-            derivatives[direction][key] = 0.0
+        if derivatives is not None:
+            for direction in derivatives:
+                derivatives[direction][key] = 0.0
 
 ADF.__getitem__ = ad_getitem
 ADF.__setitem__ = ad_setitem
@@ -122,14 +132,15 @@ def ad_product(prod):
         if not variables:
             return ADF(x, {}, {}, {})
 
-        lc, qc, cp = {}, {}, {}
+        lc, qc, cp = _make_derivs_dicts()
         for i,v in enumerate(variables):
             lc[v] = prod(a.d(v), b.x, *args, **kwargs) + prod(a.x, b.d(v),*args,**kwargs)
-            qc[v] = prod(a.d2(v), b.x, *args, **kwargs ) + 2 * prod(a.d(v), b.d(v), *args, **kwargs) + prod(a.x, b.d2(v), *args, **kwargs)
+            if get_order() == 2:
+                qc[v] = prod(a.d2(v), b.x, *args, **kwargs ) + 2 * prod(a.d(v), b.d(v), *args, **kwargs) + prod(a.x, b.d2(v), *args, **kwargs)
 
-            for j,u in enumerate(variables):
-                if i < j:
-                    cp[(v,u)] = prod(a.d2c(u,v), b.x, *args, **kwargs) + prod(a.d(u), b.d(v), *args, **kwargs) + prod(a.d(v) , b.d(u), *args, **kwargs) + prod(a.x, b.d2c(u,v), *args, **kwargs)
+                for j,u in enumerate(variables):
+                    if i < j:
+                        cp[(v,u)] = prod(a.d2c(u,v), b.x, *args, **kwargs) + prod(a.d(u), b.d(v), *args, **kwargs) + prod(a.d(v) , b.d(u), *args, **kwargs) + prod(a.x, b.d2c(u,v), *args, **kwargs)
         return ADF(x, lc, qc, cp)
     return f
 

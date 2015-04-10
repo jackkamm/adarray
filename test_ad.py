@@ -14,10 +14,14 @@ PYTHONPATH=.. python -m adarray.test_ad
 from package directory
 """
 from . import *
+from .ad import set_order, get_order
 from .ad.admath import *
 import math
 import cmath
 
+# use second order derivatives
+set_order(2)
+assert get_order() == 2
 
 ################################################################################
 for xi, yi in zip((2, 2.0), (3, 3.0)):
