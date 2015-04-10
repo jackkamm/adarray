@@ -37,11 +37,14 @@ However, there are two important downsides:
     (a) Make sure the ADF object is always on the left
     (b) Always cast the left object to an ADF type, using adarray.array()    
 
-As another speedup, we will modify the ad() object so that it has the option to
-only keep track of first-order derivatives (TODO). We have found that, for some 
-problems, explicitly computing all the second-order derivatives is not worth 
-the cost, as many optimization algorithms can effectively estimate the necessary
-second-order terms.
+As another speedup, we have modified the ad() object so that by default, it
+only keeps track of first-order derivatives. To make it keep track of second
+order derivatives, one can call
+
+set_order(2)
+
+and then all subsequent ADF objects will keep track of second order derivatives.
+WARNING: using ADF objects with different order of derivatives together, will break.
 
 Many thanks to Abraham Lee for writing the original package, which we found to be very 
 clean, transparent, and easy to edit for our purposes.

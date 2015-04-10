@@ -1,10 +1,11 @@
 from .ad import *
-from .ad import ADF, _get_variables, to_auto_diff, _apply_chain_rule, _is_constant, constant, null, get_order
+from .ad import ADF, _get_variables, to_auto_diff, _apply_chain_rule, _is_constant, constant, null, get_order, set_order
 from .ad import admath
 
 import numpy as np
 from numbers import Number
-import scipy, scipy.signal
+import scipy, scipy.signal, scipy.sparse
+from scipy.sparse.linalg import expm_multiply
 
 def _make_derivs_dicts():
     if get_order() == 1:
@@ -130,7 +131,7 @@ def ad_product(prod):
 
         variables = _get_variables([a,b])
         if not variables:
-            return ADF(x, {}, {}, {})
+            return constant(x)
 
         lc, qc, cp = _make_derivs_dicts()
         for i,v in enumerate(variables):
@@ -156,3 +157,43 @@ def diag(x):
         return x.apply(np.diag)
     except:
         return np.diag(x)
+
+'''A is a constant sparse matrix.
+Returns a function f(t,b) = exp(t*A) \dot b'''
+def ad_expm_multiply(A):
+    def func(t, b):
+        if not isinstance(t, ADF) and not isinstance(b, ADF):
+            return expm_multiply(t*A, b)
+        t,b = to_auto_diff(t), to_auto_diff(b)
+        
+        if not isinstance(t.x, Number) and len(t) > 1:
+            raise Exception("t must be a scalar")
+
+        At = t.x * A
+        x = expm_multiply(At, b.x)
+
+        variables = _get_variables([t,b])
+        if not variables:
+            return constant(x)
+
+        Ax = A.dot(x)
+        lc, qc, cp = _make_derivs_dicts()
+        b_derivs = {} # stores expm_multiply(At, b.d(v))
+        for i,v in enumerate(variables):
+            b_derivs[v] = expm_multiply(At, b.d(v))
+            lc[v] = Ax * t.d(v) + b_derivs[v]
+
+        if get_order() == 2:
+            for v in variables:
+                # replace with A * exp(At) * b.dv
+                b_derivs[v] = A.dot(b_derivs[v])
+
+            AAx = A.dot(Ax)
+            for i, v in enumerate(variables):
+                qc[v] = AAx * t.d(v) * t.d(v) + Ax * t.d2(v) + 2 * t.d(v) * b_derivs[v] + expm_multiply(At, b.d2(v))
+
+                for j,u in enumerate(variables):
+                    if i < j:
+                        cp[(v,u)] = AAx * t.d(u) * t.d(v) + Ax * t.d2c(u,v) + t.d(u) * b_derivs[v] + t.d(v) * b_derivs[u] + expm_multiply(At, b.d2c(u,v))
+        return ADF(x, lc, qc, cp)
+    return func
