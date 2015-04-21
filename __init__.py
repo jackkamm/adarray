@@ -120,6 +120,17 @@ def adarray_sum(self, *args, **kwargs):
 
 ADF.sum = adarray_sum
 
+
+''' truncates things within numerical precision of 0, but keeps the derivatives'''
+def truncate(x, level=1e-16):
+    assert x.x > -level
+    if isinstance(x.x, Number):
+        x.x = max(x.x,0.0)
+    else:
+        x.x[x.x < 0.0] = 0.0
+
+
+
 ''' implements product rule for multiplication-like operations, e.g. matrix/tensor multiplication, convolution'''
 def ad_product(prod):
     def f(a,b, *args, **kwargs):
@@ -148,7 +159,8 @@ def ad_product(prod):
 '''matrix multiplication, tensor multiplication, and convolution (Fourier domain multiplication)'''
 dot = ad_product(np.dot)
 tensordot = ad_product(np.tensordot)
-fftconvolve = ad_product(scipy.signal.fftconvolve)
+#fftconvolve = ad_product(scipy.signal.fftconvolve)
+fftconvolve = ad_product(np.convolve)
 outer = ad_product(np.outer)
 
 

@@ -955,7 +955,7 @@ class ADF(object):
         return self.x==val.x
     
     def __ne__(self, val):
-        return not self==val
+        return numpy.logical_not(self==val)
 
     def __lt__(self, val):
         val = to_auto_diff(val)
@@ -963,15 +963,15 @@ class ADF(object):
         return self.x<val.x
     
     def __le__(self, val):
-        return (self<val) or (self==val)
+        return numpy.logical_or(self<val,self==val)
     
     def __gt__(self, val):
         # ad_funcs = list(map(check_auto_diff, [self, val]))
         # return ad_funcs[0].x>ad_funcs[1].x
-        return not self<=val
+        return numpy.logical_not( self<=val)
     
     def __ge__(self, val):
-        return (self>val) or (self==val)
+        return numpy.logical_or(self>val, self==val)
     
     def __nonzero__(self):
         return type(self.x).__nonzero__(self.x)
