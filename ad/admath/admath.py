@@ -56,7 +56,7 @@ author.
 from __future__ import division
 import math
 import cmath
-from adarray import ADF, to_auto_diff, _apply_chain_rule, _get_variables, null, constant, get_order
+from adarray import ADF, to_auto_diff, _apply_chain_rule, _get_variables, null, constant
 
 import numpy as np
 import scipy, scipy.special
@@ -130,11 +130,8 @@ def exp(x):
         # of f (ad_funcs):
 
         lc_wrt_args = [np.exp(xx)]
-        if get_order() == 2:
-            qc_wrt_args = [np.exp(xx)]
-            cp_wrt_args = 0.0
-        else:
-            qc_wrt_args, cp_wrt_args = None,None
+        qc_wrt_args = [np.exp(xx)]
+        cp_wrt_args = 0.0
         
 
         ########################################
@@ -183,11 +180,8 @@ def expm1(x):
         # of f (ad_funcs):
 
         lc_wrt_args = [np.exp(xx)]
-        if get_order() == 2:
-            qc_wrt_args = [np.exp(xx)]
-            cp_wrt_args = 0.0
-        else:
-            qc_wrt_args, cp_wrt_args = None,None
+        qc_wrt_args = [np.exp(xx)]
+        cp_wrt_args = 0.0
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -231,11 +225,8 @@ def log(x):
         # of f (ad_funcs):
 
         lc_wrt_args = [1./xx]
-        if get_order() == 2:
-            qc_wrt_args = [-1./xx**2]
-            cp_wrt_args = 0.0
-        else:
-            qc_wrt_args, cp_wrt_args = None,None
+        qc_wrt_args = [-1./xx**2]
+        cp_wrt_args = 0.0
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -275,11 +266,8 @@ def expi(x):
         # of f (ad_funcs):
 
         lc_wrt_args = [np.exp(xx)/xx]
-        if get_order() == 2:
-            qc_wrt_args = [np.exp(xx)/xx - np.exp(xx)/xx**2]
-            cp_wrt_args = 0.0
-        else:
-            qc_wrt_args, cp_wrt_args = None,None
+        qc_wrt_args = [np.exp(xx)/xx - np.exp(xx)/xx**2]
+        cp_wrt_args = 0.0
 
         ########################################
         # Calculation of the derivative of f with respect to all the

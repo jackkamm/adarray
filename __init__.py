@@ -9,8 +9,8 @@ from scipy.sparse.linalg import expm_multiply
 
 def _make_derivs_dicts():
     if get_order() == 1:
-        # return dictionary for first order terms
-        return {}, None, None
+        # no cross terms
+        return {}, {}, None
     elif get_order() == 2:
         # dictionaries for first order, second order, cross terms
         return {}, {}, {}
@@ -147,9 +147,8 @@ def ad_product(prod):
         lc, qc, cp = _make_derivs_dicts()
         for i,v in enumerate(variables):
             lc[v] = prod(a.d(v), b.x, *args, **kwargs) + prod(a.x, b.d(v),*args,**kwargs)
+            qc[v] = prod(a.d2(v), b.x, *args, **kwargs ) + 2 * prod(a.d(v), b.d(v), *args, **kwargs) + prod(a.x, b.d2(v), *args, **kwargs)
             if get_order() == 2:
-                qc[v] = prod(a.d2(v), b.x, *args, **kwargs ) + 2 * prod(a.d(v), b.d(v), *args, **kwargs) + prod(a.x, b.d2(v), *args, **kwargs)
-
                 for j,u in enumerate(variables):
                     if i < j:
                         cp[(v,u)] = prod(a.d2c(u,v), b.x, *args, **kwargs) + prod(a.d(u), b.d(v), *args, **kwargs) + prod(a.d(v) , b.d(u), *args, **kwargs) + prod(a.x, b.d2c(u,v), *args, **kwargs)
@@ -189,21 +188,20 @@ def ad_expm_multiply(A):
             return constant(x)
 
         Ax = A.dot(x)
+        AAx = A.dot(Ax)
         lc, qc, cp = _make_derivs_dicts()
+
         b_derivs = {} # stores expm_multiply(At, b.d(v))
         for i,v in enumerate(variables):
             b_derivs[v] = expm_multiply(At, b.d(v))
             lc[v] = Ax * t.d(v) + b_derivs[v]
 
+            # replace with A * exp(At) * b.dv
+            b_derivs[v] = A.dot(b_derivs[v])
+            qc[v] = AAx * t.d(v) * t.d(v) + Ax * t.d2(v) + 2 * t.d(v) * b_derivs[v] + expm_multiply(At, b.d2(v))
+
         if get_order() == 2:
-            for v in variables:
-                # replace with A * exp(At) * b.dv
-                b_derivs[v] = A.dot(b_derivs[v])
-
-            AAx = A.dot(Ax)
             for i, v in enumerate(variables):
-                qc[v] = AAx * t.d(v) * t.d(v) + Ax * t.d2(v) + 2 * t.d(v) * b_derivs[v] + expm_multiply(At, b.d2(v))
-
                 for j,u in enumerate(variables):
                     if i < j:
                         cp[(v,u)] = AAx * t.d(u) * t.d(v) + Ax * t.d2c(u,v) + t.d(u) * b_derivs[v] + t.d(v) * b_derivs[u] + expm_multiply(At, b.d2c(u,v))

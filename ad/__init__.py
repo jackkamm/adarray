@@ -51,7 +51,7 @@ _order, null2 = 1, None
 set_order(_order)
 
 def constant(x):
-    return ADF(x, null, null2, null2)
+    return ADF(x, null, null, null2)
 
 ## EDIT (jackkamm): no longer a class method.
 def _get_variables(ad_funcs):
@@ -108,11 +108,31 @@ def _lin_chain_rule(ad_funcs, variables, lc_wrt_args):
             lc_wrt_vars[var1] += dh*fdv1
     return lc_wrt_vars
 
-def _quad_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args):
+def _qc_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args):
     num_funcs = len(ad_funcs)
     
     # Initial value (is updated below):
     qc_wrt_vars = dict((var, 0.) for var in variables)
+
+    # The chain rule is used (we already have
+    # derivatives_wrt_args):
+    for j, var1 in enumerate(variables):
+        for (f, dh, d2h) in zip(ad_funcs, lc_wrt_args, qc_wrt_args):
+            fdv1 = f.d(var1)
+            # pure second-order terms
+            qc_wrt_vars[var1] += dh*f.d2(var1) + d2h*fdv1**2
+
+            # now add in the other cross-product contributions to second-order
+            # terms
+            if num_funcs>1:
+                tmp = 2*cp_wrt_args*ad_funcs[0].d(var1)*ad_funcs[1].d(var1)
+                qc_wrt_vars[var1] += tmp                
+    return qc_wrt_vars
+
+def _cp_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args):
+    num_funcs = len(ad_funcs)
+    
+    # Initial value (is updated below):
     cp_wrt_vars = {}
     for i,var1 in enumerate(variables):
         for j,var2 in enumerate(variables):
@@ -123,28 +143,17 @@ def _quad_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args)
     # derivatives_wrt_args):
     for j, var1 in enumerate(variables):
         for k, var2 in enumerate(variables):
-            for (f, dh, d2h) in zip(ad_funcs, lc_wrt_args, qc_wrt_args):               
-                if j==k:
-                    fdv1 = f.d(var1)
-                    # pure second-order terms
-                    qc_wrt_vars[var1] += dh*f.d2(var1) + d2h*fdv1**2
-                elif j<k:
+            if j < k:
+                for (f, dh, d2h) in zip(ad_funcs, lc_wrt_args, qc_wrt_args):               
                     # cross-product second-order terms
                     tmp = dh*f.d2c(var1, var2) + d2h*f.d(var1)*f.d(var2)
                     cp_wrt_vars[(var1, var2)] += tmp
 
-            # now add in the other cross-product contributions to second-order
-            # terms
-            if j==k and num_funcs>1:
-                tmp = 2*cp_wrt_args*ad_funcs[0].d(var1)*ad_funcs[1].d(var1)
-                qc_wrt_vars[var1] += tmp
-
-            elif j<k and num_funcs>1:
-                tmp = cp_wrt_args*(ad_funcs[0].d(var1)*ad_funcs[1].d(var2) + \
-                                   ad_funcs[0].d(var2)*ad_funcs[1].d(var1))
-                cp_wrt_vars[(var1, var2)] += tmp
-                
-    return (qc_wrt_vars, cp_wrt_vars)
+                if num_funcs>1:
+                    tmp = cp_wrt_args*(ad_funcs[0].d(var1)*ad_funcs[1].d(var2) + \
+                                       ad_funcs[0].d(var2)*ad_funcs[1].d(var1))
+                    cp_wrt_vars[(var1, var2)] += tmp                
+    return cp_wrt_vars
         
 def _apply_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, 
                       cp_wrt_args):
@@ -160,10 +169,11 @@ def _apply_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args,
     
     """
     lc_wrt_vars = _lin_chain_rule(ad_funcs, variables, lc_wrt_args)
+    qc_wrt_vars = _qc_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args)
     if _order == 2:
-        qc_wrt_vars, cp_wrt_vars = _quad_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args)
+        cp_wrt_vars = _cp_chain_rule(ad_funcs, variables, lc_wrt_args, qc_wrt_args, cp_wrt_args)
     else:
-        qc_wrt_vars, cp_wrt_vars = None,None
+        cp_wrt_vars = None
     return (lc_wrt_vars, qc_wrt_vars, cp_wrt_vars)
     
 def _floor(x):
@@ -191,11 +201,8 @@ def _floor(x):
     # of f (ad_funcs):
 
     lc_wrt_args = [0.0]
-    if _order == 2:
-        qc_wrt_args = [0.0]
-        cp_wrt_args = 0.0
-    else:
-        qc_wrt_args, cp_wrt_args = None,None
+    qc_wrt_args = [0.0]
+    cp_wrt_args = 0.0
 
     ########################################
     # Calculation of the derivative of f with respect to all the
@@ -516,6 +523,8 @@ class ADF(object):
         d, d2, gradient, hessian
         
         """
+        if not _order == 2 or self._cp is None:
+            raise Exception("Need to call set_order(2) in order to keep track of Hessian information")
         if (x is not None) and (y is not None):
             if x is y:
                 tmp = self.d2(x)
@@ -582,6 +591,13 @@ class ADF(object):
         except TypeError:
             grad = [self.d(variables)]
         return grad
+
+    def hessdiag(self, variables):
+        try:
+            diag = [self.d2(v1) for v1 in variables]
+        except TypeError:
+            diag = [self.d2(variables)]
+        return numpy.diag(diag)
         
     def hessian(self, variables):
         """
@@ -669,11 +685,8 @@ class ADF(object):
         # Calculation of the derivatives with respect to the arguments
         # of f (ad_funcs):
         lc_wrt_args = [1., 1.]
-        if _order == 2:
-            qc_wrt_args = [0., 0.]
-            cp_wrt_args = 0.
-        else:
-            qc_wrt_args, cp_wrt_args = None,None
+        qc_wrt_args = [0., 0.]
+        cp_wrt_args = 0.
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -710,11 +723,9 @@ class ADF(object):
         # Calculation of the derivatives with respect to the arguments
         # of f (ad_funcs):
         lc_wrt_args = [y, x]
-        if _order == 2:
-            qc_wrt_args = [0., 0.]
-            cp_wrt_args = 1.
-        else:
-            qc_wrt_args, cp_wrt_args = None,None
+        qc_wrt_args = [0., 0.]
+        cp_wrt_args = 1.
+
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -755,11 +766,8 @@ class ADF(object):
         # Calculation of the derivatives with respect to the arguments
         # of f (ad_funcs):
         lc_wrt_args = [1./y, -x/y**2]
-        if _order == 2:
-            qc_wrt_args = [0., 2*x/y**3]
-            cp_wrt_args = -1./y**2
-        else:
-            qc_wrt_args, cp_wrt_args = None,None
+        qc_wrt_args = [0., 2*x/y**3]
+        cp_wrt_args = -1./y**2
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -814,36 +822,23 @@ class ADF(object):
         if x.imag or y.imag:
             if abs(x)>0 and ad_funcs[1].d(ad_funcs[1])!=0:
                 lc_wrt_args = [y*x**(y - 1), x**y*cmath.log(x)]
-                if _order == 2:
-                    qc_wrt_args = [y*(y - 1)*x**(y - 2), x**y*(cmath.log(x))**2]
-                    cp_wrt_args = x**(y - 1)*(y*cmath.log(x) + 1)/x
-                else:
-                    qc_wrt_args, cp_wrt_args = None,None
+                qc_wrt_args = [y*(y - 1)*x**(y - 2), x**y*(cmath.log(x))**2]
+                cp_wrt_args = x**(y - 1)*(y*cmath.log(x) + 1)/x
             else:
                 lc_wrt_args = [y*x**(y - 1), 0.]
-                if _order == 2:
-                    qc_wrt_args = [y*(y - 1)*x**(y - 2), 0.]
-                    cp_wrt_args = 0.
-                else:
-                    qc_wrt_args, cp_wrt_args = None,None
+                qc_wrt_args = [y*(y - 1)*x**(y - 2), 0.]
+                cp_wrt_args = 0.
         else:
             x = x.real
             y = y.real
             if x>0:
                 lc_wrt_args = [y*x**(y - 1), x**y*math.log(x)]
-                if _order == 2:
-                    qc_wrt_args = [y*(y - 1)*x**(y - 2), x**y*(math.log(x))**2]
-                    cp_wrt_args = x**y*(y*math.log(x) + 1)/x
-                else:
-                    qc_wrt_args, cp_wrt_args = None,None
+                qc_wrt_args = [y*(y - 1)*x**(y - 2), x**y*(math.log(x))**2]
+                cp_wrt_args = x**y*(y*math.log(x) + 1)/x
             else:
                 lc_wrt_args = [y*x**(y - 1), 0.]
-                if _order == 2:
-                    qc_wrt_args = [y*(y - 1)*x**(y - 2), 0.]
-                    cp_wrt_args = 0.
-                else:
-                    qc_wrt_args, cp_wrt_args = None,None
-            
+                qc_wrt_args = [y*(y - 1)*x**(y - 2), 0.]
+                cp_wrt_args = 0.           
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -900,11 +895,8 @@ class ADF(object):
         except ZeroDivisionError:
             lc_wrt_args = [0.0]
         
-        if _order == 2:
-            qc_wrt_args = [0.0]
-            cp_wrt_args = 0.0
-        else:
-            qc_wrt_args, cp_wrt_args = None,None
+        qc_wrt_args = [0.0]
+        cp_wrt_args = 0.0
 
         ########################################
         # Calculation of the derivative of f with respect to all the
@@ -987,7 +979,7 @@ class ADV(ADF):
             # the second is always 0.0
             super(ADV, self).__init__(value, {self:1.0}, {self:0.0}, {}, tag=tag)
         elif _order == 1:
-            super(ADV, self).__init__(value, {self:1.0}, None, None, tag=tag)
+            super(ADV, self).__init__(value, {self:1.0}, {self:0.0}, None, tag=tag)
 
 ## EDITED (jackkamm): must now take in a constant scalar type, or an ndarray/list of such.
 ## Use array() for ADF types or list/ndarrays of ADF types
